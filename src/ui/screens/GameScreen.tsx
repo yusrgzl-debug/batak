@@ -513,7 +513,6 @@ function Kitty({ s }: { s: GameState }) {
               <PlayingCard faceDown />
             </div>
           ))}
-          <span className="kitty-label">Yerdeki 4 kart</span>
         </motion.div>
       )}
     </AnimatePresence>
