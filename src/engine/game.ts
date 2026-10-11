@@ -6,7 +6,7 @@ export type Mode = 'ihaleli' | 'esli' | 'gommeli' | 'kozMaca';
 export const MODE_INFO: Record<Mode, { title: string; desc: string }> = {
   ihaleli: { title: 'İhaleli', desc: '4 kişi. İhaleyi kazanan kozu seçer, herkes kendi için oynar.' },
   esli: { title: 'Eşli', desc: '4 kişi. Karşılıklı oturanlar takım, ihaleyi takım tutturur.' },
-  gommeli: { title: 'Gömmeli', desc: '3 kişi, 16’şar kart. İhaleyi alan yerdeki 4 kartı alır, 4 kart gömer.' },
+  gommeli: { title: 'Gömmeli', desc: '3 kişi, 16’şar kart. İhaleyi alan kozu seçer, 4 kart gömer, sonra yerdeki 4 kartı alır.' },
   kozMaca: { title: 'Koz Maça', desc: '4 kişi. Koz her zaman maça, herkes kaç el alacağını söyler.' },
 };
 
@@ -165,12 +165,7 @@ export function placeBid(s: GameState, player: number, bid: number | 'pass'): Ga
   const active = range(s.n).filter((p) => bids[p] !== 'pass');
 
   if (highBid && (active.length === 1 || highBid.amount === opts.max)) {
-    if (s.settings.mode === 'gommeli') {
-      // the bidder picks up the kitty, then buries 4 cards
-      const hands = s.hands.slice();
-      hands[highBid.player] = sortHand([...hands[highBid.player], ...s.kitty]);
-      return { ...s, bids, highBid, hands, phase: 'bury', turn: highBid.player };
-    }
+    // Gömmeli: koz → 4 kart gömme → yerdeki 4 kartı alma (see chooseTrump / buryCards)
     return { ...s, bids, highBid, phase: 'trump', turn: highBid.player };
   }
 
@@ -179,20 +174,25 @@ export function placeBid(s: GameState, player: number, bid: number | 'pass'): Ga
   return { ...s, bids, highBid, turn: t };
 }
 
-/** Gömmeli: the bidder buries exactly 4 cards from their 20-card hand. */
+/**
+ * Gömmeli: after choosing trump the bidder buries exactly 4 cards from their own 16, without
+ * having seen the kitty; only then are the 4 kitty cards added to the hand and play starts.
+ */
 export function buryCards(s: GameState, player: number, cards: Card[]): GameState {
   if (s.phase !== 'bury' || player !== s.turn || cards.length !== KITTY) return s;
   const hand = s.hands[player];
   const unique = cards.filter((c, i) => cards.findIndex((d) => sameCard(c, d)) === i);
   if (unique.length !== KITTY || !unique.every((c) => hand.some((h) => sameCard(h, c)))) return s;
   const hands = s.hands.slice();
-  hands[player] = hand.filter((h) => !unique.some((c) => sameCard(c, h)));
-  return { ...s, hands, buried: unique, phase: 'trump' };
+  hands[player] = sortHand([...hand.filter((h) => !unique.some((c) => sameCard(c, h))), ...s.kitty]);
+  return { ...s, hands, buried: unique, phase: 'playing', trickLeader: player };
 }
 
 export function chooseTrump(s: GameState, suit: Suit): GameState {
   if (s.phase !== 'trump' || !s.highBid) return s;
-  return { ...s, trump: suit, phase: 'playing', turn: s.highBid.player, trickLeader: s.highBid.player };
+  const bidder = s.highBid.player;
+  const phase = s.settings.mode === 'gommeli' ? 'bury' : 'playing';
+  return { ...s, trump: suit, phase, turn: bidder, trickLeader: bidder };
 }
 
 export function playCard(s: GameState, player: number, card: Card): GameState {

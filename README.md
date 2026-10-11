@@ -8,7 +8,8 @@ Tek kod tabanı: web (geliştirme/test) + iOS + Android (Capacitor).
 - **Giriş ekranı:** Apple, Google, Facebook veya misafir girişi (Firebase Authentication); misafir hesabı sonradan bağlanabilir, hesap silme ve oturum kapatma ayarlarda
 - **4 mod:** İhaleli, Eşli, Gömmeli (3 kişi), Koz Maça
 - **Oda kurma:** oyun tipi, 3 / 5 / 7 / 9 / 11 / 13 el (varsayılan 7), koz oynama kuralı (Koz Çıkmalı / Serbest), mesajlaşma açık/kapalı
-- **Klasik kartlar:** Adrian Kennard'ın kamu malı (CC0) klasik kart tasarımları, fildişi zemin ve altın kenarla
+- **Kart tasarımı:** uygulamaya özel, düz (flat) çizim kartlar: dört köşede serif indeks, figürlerin başı kendi rengi şeklinde (kalp papaz, maça kız…); hepsi kodla çizilen SVG (`src/ui/components/cardArt.tsx`)
+- **Takip kolaylığı:** ihaleyi alanın rozetinde ve üst çubukta aldığı/ihale sayacı (ör. 3/7), masanın ortasında koz simgesi
 - **Oda içi mesajlaşma:** hızlı sohbet mesajları, emojiler ve serbest yazı; botlar da cevap verir
 - **Premium ayrıcalığı:** profil fotoğrafında altın çerçeve ve kral tacı (menüde ve masada)
 - Facebook / Google ile girişte profil fotoğrafı otomatik gelir
@@ -72,8 +73,9 @@ src/ui/       React ekranları, bileşenler, stiller
 
 ## Puanlama
 
-- **Gömmeli (3 kişi):** 16'şar kart, 4 kart yerde. İhale en az 7. İhaleyi alan yerdeki 4 kartı
-  alır, 4 kart gömer, kozu seçer ve başlar. Gömülen kartlar sayılmaz; puanlama İhaleli ile aynı.
+- **Gömmeli (3 kişi):** 16'şar kart, 4 kart yerde. İhale en az 7. İhaleyi alan önce kozu seçer,
+  sonra elinden 4 kart gömer; gömdükten sonra yerdeki 4 kart eline gelir (ilk turda "YENİ"
+  etiketiyle) ve oyuna o başlar. Gömülen kartlar sayılmaz; puanlama İhaleli ile aynı.
 - **İhaleli:** İhaleci tutturursa aldığı el kadar +, tutturamazsa ihale kadar −. Diğerleri aldığı
   el kadar +; hiç el alamayan ihale kadar −.
 - **Eşli:** Takım elleri toplanır; ihaleci takım tutturursa toplam el +, tutturamazsa ihale kadar −.

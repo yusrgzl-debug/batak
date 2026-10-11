@@ -125,12 +125,13 @@ function dumpCard(legal: Card[], trump: Suit | null): Card {
 }
 
 /**
- * Gömmeli: pick 4 cards to bury from the 20-card hand. Keeps trump and aces, prefers
- * emptying short side suits (so we can trump them later), then the lowest cards.
+ * Gömmeli: pick 4 of the 16 cards to bury (trump is already chosen, the kitty is still unseen).
+ * Keeps trump and aces, prefers emptying short side suits (so we can trump them later),
+ * then the lowest cards.
  */
 export function botBury(s: GameState, p: number): Card[] {
   const hand = s.hands[p];
-  const trump = bestTrump(hand);
+  const trump = s.trump ?? bestTrump(hand);
   const len = (suit: Suit) => bySuit(hand, suit).length;
   const candidates = hand
     .filter((c) => c.suit !== trump && c.rank !== 14)

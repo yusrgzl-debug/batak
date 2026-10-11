@@ -156,8 +156,7 @@ button {
   border-radius: 6% / 4.3%;
   background: linear-gradient(160deg, #fffefa 0%, #f8f3e6 70%, #efe6cf 100%);
   box-shadow:
-    inset 0 0 0 1px rgba(200, 144, 42, 0.55),
-    0 0 0 0.5px rgba(0, 0, 0, 0.35),
+    0 0 0 0.5px rgba(0, 0, 0, 0.3),
     0 3px 8px rgba(0, 0, 0, 0.35);
   container-type: inline-size;
   overflow: hidden;
@@ -973,13 +972,12 @@ button {
     0 6px 14px rgba(0, 0, 0, 0.4);
 }
 .card-fresh {
-  /* sits under the corner index: the only part of a card that is never overlapped */
+  /* top-right corner of the part of the card that is not covered by its neighbour */
   position: absolute;
-  top: 36%;
-  left: 3%;
+  top: 3%;
   padding: 1px 3px;
   border-radius: 4px;
-  font-size: 10cqi;
+  font-size: 8cqi;
   font-weight: 900;
   color: #3b2400;
   background: var(--gold);
@@ -1439,4 +1437,28 @@ button {
 }
 .chat-input .btn {
   padding: 10px 14px;
+}
+
+/* ---------- table centre: logo + current trump ---------- */
+.table-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.table-trump {
+  width: 84px;
+  height: 84px;
+  fill: rgba(10, 12, 24, 0.38);
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.08));
+}
+.table-trump--red {
+  fill: rgba(227, 38, 47, 0.5);
+}
+.progress {
+  padding: 0 6px;
+  border-radius: 999px;
+  font-weight: 900;
+  color: #3b2400;
+  background: var(--gold);
 }

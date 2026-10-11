@@ -71,6 +71,7 @@ export function Hand({ cards, isActive, dimInactive, selected, fresh, onTap }: P
                   glow={dimInactive && active}
                   selected={sel}
                   fresh={fresh?.has(id)}
+                  hiddenRight={i < row.length - 1 ? Math.max(0, cardW - step) : 0}
                   dimmed={dimInactive && !active}
                   onClick={() => onTap(c)}
                 />

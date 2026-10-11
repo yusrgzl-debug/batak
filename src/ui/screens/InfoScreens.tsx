@@ -42,8 +42,8 @@ export function RulesScreen({ onBack }: { onBack: () => void }) {
         <h3>Gömmeli Batak (3 kişi)</h3>
         <p>
           3 oyuncuya 16’şar kart dağıtılır, kalan 4 kart kapalı olarak yere konur. İhale en az 7’den başlar. İhaleyi alan
-          yerdeki 4 kartı eline alır, istemediği 4 kartı kapalı olarak gömer, sonra kozu seçip ilk kartı atar. Gömülen
-          kartlar oyuna girmez; elde 16 el oynanır. Puanlama İhaleli ile aynıdır.
+          önce kozu seçer, sonra elinden istediği 4 kartı kapalı olarak gömer; gömdükten sonra yerdeki 4 kart eline gelir
+          ve ilk kartı o atar. Gömülen kartlar oyuna girmez; elde 16 el oynanır. Puanlama İhaleli ile aynıdır.
         </p>
       </section>
       <section>

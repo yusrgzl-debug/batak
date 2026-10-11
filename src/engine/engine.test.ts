@@ -128,19 +128,25 @@ describe('gömmeli', () => {
     expect(bidOptions(s).min).toBe(7);
   });
 
-  it('bidder picks up the kitty, buries 4, then chooses trump', () => {
+  it('bidder chooses trump, buries 4 of their own cards, then receives the kitty', () => {
     let s = newGame(settings, seeded(5));
     const bidder = s.turn;
     s = placeBid(s, bidder, 8);
     s = placeBid(s, s.turn, 'pass');
     s = placeBid(s, s.turn, 'pass');
-    expect(s.phase).toBe('bury');
-    expect(s.hands[bidder]).toHaveLength(20);
-    expect(buryCards(s, bidder, s.hands[bidder].slice(0, 3))).toBe(s); // must be exactly 4
-    const toBury = s.hands[bidder].slice(0, 4);
-    s = buryCards(s, bidder, toBury);
     expect(s.phase).toBe('trump');
+    s = chooseTrump(s, 'H');
+    expect(s.phase).toBe('bury');
+    expect(s.hands[bidder]).toHaveLength(16); // kitty not received yet
+    expect(buryCards(s, bidder, s.hands[bidder].slice(0, 3))).toBe(s); // must be exactly 4
+    expect(buryCards(s, bidder, s.kitty)).toBe(s); // can't bury cards not yet in hand
+    const toBury = s.hands[bidder].slice(0, 4);
+    const kitty = s.kitty;
+    s = buryCards(s, bidder, toBury);
+    expect(s.phase).toBe('playing');
+    expect(s.turn).toBe(bidder);
     expect(s.hands[bidder]).toHaveLength(16);
+    for (const k of kitty) expect(s.hands[bidder]).toContainEqual(k);
     expect(s.buried).toEqual(toBury);
   });
 });

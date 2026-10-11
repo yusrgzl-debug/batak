@@ -8,6 +8,7 @@ import { ChatPanel } from '../components/ChatPanel';
 import { Hand } from '../components/Hand';
 import { BUBBLE_MS, ChatMsg, botOnBidFailed, botOnBidMade, botOnGameEnd, botReplyTo } from '../chat';
 import { PlayingCard } from '../components/PlayingCard';
+import { SUIT_PATH } from '../components/cardArt';
 import { HUMAN, useGame } from '../useGame';
 import { Prefs } from '../storage';
 import { sfx } from '../sound';
@@ -131,7 +132,10 @@ export function GameScreen({ settings, prefs, playerName, photoUrl, premium, onE
   );
   const isLegal = (c: Card) => legal.some((l) => cardId(l) === cardId(c));
   const burying = s.phase === 'bury' && s.turn === HUMAN;
-  const fresh = useMemo(() => (burying ? new Set(s.kitty.map(cardId)) : undefined), [burying, s.kitty]);
+  // Gömmeli: the kitty cards carry a small YENİ tag during the first trick only.
+  const firstTrick = (s.phase === 'playing' || s.phase === 'trickEnd') && s.played.length === 0;
+  const showFresh = settings.mode === 'gommeli' && s.highBid?.player === HUMAN && firstTrick;
+  const fresh = useMemo(() => (showFresh ? new Set(s.kitty.map(cardId)) : undefined), [showFresh, s.kitty]);
 
   const onTap = (c: Card) => {
     if (burying) {
@@ -171,7 +175,11 @@ export function GameScreen({ settings, prefs, playerName, photoUrl, premium, onE
               {SUIT_SYMBOL[s.trump]}
             </span>
           )}
-          {s.highBid && <span className="chip">İhale {s.highBid.amount}</span>}
+          {s.highBid && (
+            <span className="chip">
+              İhale {s.phase === 'bidding' ? s.highBid.amount : bidProgress(s, s.highBid.player)}
+            </span>
+          )}
         </div>
         {settings.chat && (
           <button className="icon-btn" onClick={() => setChatOpen(true)} aria-label="Mesajlar">
@@ -185,7 +193,14 @@ export function GameScreen({ settings, prefs, playerName, photoUrl, premium, onE
 
       <div className="table">
         <div className="table-felt">
-          <div className="table-logo">BATAK</div>
+          <div className="table-center">
+            {s.trump && (
+              <svg viewBox="0 0 100 100" className={`table-trump ${isRed(s.trump) ? 'table-trump--red' : ''}`} aria-label={`Koz ${SUIT_NAME[s.trump]}`}>
+                <path d={SUIT_PATH[s.trump]} />
+              </svg>
+            )}
+            <div className="table-logo">BATAK</div>
+          </div>
         </div>
 
         {names.slice(1).map((_, i) => i + 1).map((p) => (
@@ -220,7 +235,7 @@ export function GameScreen({ settings, prefs, playerName, photoUrl, premium, onE
           {s.phase === 'bury' && s.turn !== HUMAN && (
             <div className="center-msg">
               {names[s.turn]} {s.highBid?.amount} ile ihaleyi aldı
-              <div className="muted small">yerdeki 4 kartı alıp gömüyor…</div>
+              <div className="muted small">4 kart gömüyor, sonra yerdeki 4 kartı alacak…</div>
             </div>
           )}
         </div>
@@ -285,6 +300,20 @@ export function GameScreen({ settings, prefs, playerName, photoUrl, premium, onE
   );
 }
 
+/**
+ * "aldığı / ihale" for whoever has to make a bid: the bidder (team total in Eşli), or every
+ * player in Koz Maça. Null for players without a target.
+ */
+function bidProgress(s: GameState, p: number): string | null {
+  if (s.settings.mode === 'kozMaca') {
+    const b = s.bids[p];
+    return typeof b === 'number' ? `${s.tricks[p]}/${b}` : null;
+  }
+  if (!s.highBid || s.highBid.player !== p) return null;
+  const won = s.settings.mode === 'esli' ? s.tricks[p] + s.tricks[(p + 2) % 4] : s.tricks[p];
+  return `${won}/${s.highBid.amount}`;
+}
+
 function bidText(b: GameState['bids'][number]) {
   if (b === null) return null;
   return b === 'pass' ? 'Pas' : String(b);
@@ -319,7 +348,14 @@ function PlayerBadge({ p, s, name, esli, bubble, photoUrl, premium }: BadgeProps
           )}
         </span>
         <span className="badge-stats">
-          {s.phase !== 'bidding' && <span title="Aldığı el">🂠 {s.tricks[p]}</span>}
+          {s.phase !== 'bidding' &&
+            (bidProgress(s, p) ? (
+              <span className="progress" title="Aldığı el / ihale">
+                {bidProgress(s, p)}
+              </span>
+            ) : (
+              <span title="Aldığı el">🂠 {s.tricks[p]}</span>
+            ))}
           <span className="badge-score">{s.scores[p]}</span>
         </span>
       </div>
@@ -410,8 +446,8 @@ function BidPanel({ s, onBid }: { s: GameState; onBid: (b: number | 'pass') => v
 function BuryPanel({ count, onBury }: { count: number; onBury: () => void }) {
   return (
     <motion.div className="panel" {...sheet}>
-      <div className="panel-title">Yerdeki 4 kart eline eklendi</div>
-      <p className="panel-sub">Gömmek istediğin 4 kartı seç ({count}/{KITTY})</p>
+      <div className="panel-title">Gömmek istediğin 4 kartı seç ({count}/{KITTY})</div>
+      <p className="panel-sub">Kartları gömünce yerdeki 4 kart eline gelecek.</p>
       <button className="btn btn--gold wide" disabled={count !== KITTY} onClick={onBury}>
         Kartları Göm
       </button>
