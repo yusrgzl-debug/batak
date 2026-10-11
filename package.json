@@ -9,13 +9,16 @@
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "cap:sync": "npm run build && cap sync"
+    "cap:sync": "npm run build && cap sync",
+    "build:web": "tsc --noEmit && vite build -c vite.web.config.ts && node scripts/web-demo.mjs"
   },
   "dependencies": {
+    "@babel/runtime": "^7.29.10",
     "@capacitor-community/admob": "^6.2.0",
     "@capacitor-firebase/authentication": "^6.3.1",
     "@capacitor/core": "^6.2.2",
     "@capacitor/preferences": "^6.0.4",
+    "@letele/playing-cards": "^0.1.0",
     "@revenuecat/purchases-capacitor": "^9.2.2",
     "firebase": "^10.14.1",
     "framer-motion": "^11.11.17",
@@ -31,6 +34,7 @@
     "@vitejs/plugin-react": "^4.3.4",
     "typescript": "^5.6.3",
     "vite": "^5.4.11",
+    "vite-plugin-singlefile": "^2.0.3",
     "vitest": "^2.1.8"
   }
 }

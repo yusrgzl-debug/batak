@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
-import { MODE_INFO, Mode, Settings, TrumpRule, playerCount } from '../../engine/game';
+import { MODE_INFO, Mode, ROUND_OPTIONS, Settings, TrumpRule, playerCount } from '../../engine/game';
 import { User } from '../../services/auth';
+import { Avatar } from '../components/Avatar';
 import { Stats } from '../storage';
 import { ProviderIcon } from './LoginScreen';
 
@@ -16,7 +17,6 @@ interface Props {
   onRules: () => void;
 }
 
-const ROUNDS = [5, 11, 21];
 const MODES: Mode[] = ['ihaleli', 'esli', 'gommeli', 'kozMaca'];
 const TRUMP_RULES: { value: TrumpRule; label: string; desc: string }[] = [
   { value: 'zorunlu', label: 'Koz Çıkmalı', desc: 'Elinde yerdeki renk yoksa koz atmak zorunlu.' },
@@ -29,12 +29,11 @@ export function MenuScreen({ user, settings, stats, premium, onChange, onPlay, o
     <div className="menu">
       <div className="profile-bar">
         <div className="profile">
-          <div className="profile-avatar">
-            {user.photoUrl ? <img src={user.photoUrl} alt="" /> : user.name[0]}
+          <Avatar name={user.name} photoUrl={user.photoUrl} premium={premium} size={52} className="profile-avatar">
             <span className={`profile-provider profile-provider--${user.provider}`}>
               <ProviderIcon p={user.provider} />
             </span>
-          </div>
+          </Avatar>
           <div className="profile-info">
             <b>{user.name}</b>
             <span className="muted small">
@@ -77,10 +76,10 @@ export function MenuScreen({ user, settings, stats, premium, onChange, onPlay, o
           <span className="room-help">{MODE_INFO[settings.mode].desc}</span>
         </div>
 
-        <div className="room-row room-row--inline">
+        <div className="room-row">
           <span className="room-label">El Sayısı</span>
-          <div className="seg">
-            {ROUNDS.map((r) => (
+          <div className="seg seg--full">
+            {ROUND_OPTIONS.map((r) => (
               <button
                 key={r}
                 className={`seg-btn ${settings.rounds === r ? 'seg-btn--on' : ''}`}
@@ -106,6 +105,21 @@ export function MenuScreen({ user, settings, stats, premium, onChange, onPlay, o
             ))}
           </div>
           <span className="room-help">{rule.desc}</span>
+        </div>
+
+        <div className="room-row room-row--inline">
+          <span className="room-label">Mesaj Gönderme</span>
+          <div className="seg">
+            {[true, false].map((on) => (
+              <button
+                key={String(on)}
+                className={`seg-btn ${settings.chat === on ? 'seg-btn--on' : ''}`}
+                onClick={() => onChange({ ...settings, chat: on })}
+              >
+                {on ? 'Açık' : 'Kapalı'}
+              </button>
+            ))}
+          </div>
         </div>
 
         <motion.button className="btn btn--gold btn--xl wide" whileTap={{ scale: 0.96 }} onClick={onPlay}>

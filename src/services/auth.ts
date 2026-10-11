@@ -42,13 +42,25 @@ async function plugin() {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function fromFirebase(fu: any, provider: Provider): User {
+function fromFirebase(fu: any, provider: Provider, accessToken?: string): User {
   return {
     uid: fu.uid,
     name: fu.displayName || (provider === 'guest' ? guestName(fu.uid) : 'Oyuncu'),
     provider: fu.isAnonymous ? 'guest' : provider,
-    photoUrl: fu.photoUrl ?? null,
+    photoUrl: profilePhoto(fu.photoUrl ?? null, provider, accessToken),
   };
+}
+
+/**
+ * Firebase gives a tiny Facebook avatar (graph.facebook.com/<id>/picture). Ask the Graph API for a
+ * larger one; Facebook requires the user's access token on that URL for apps created after 2020.
+ */
+function profilePhoto(url: string | null, provider: Provider, accessToken?: string): string | null {
+  if (!url || provider !== 'facebook' || !url.includes('graph.facebook.com')) return url;
+  const u = new URL(url);
+  u.searchParams.set('height', '256');
+  if (accessToken) u.searchParams.set('access_token', accessToken);
+  return u.toString();
 }
 
 const guestName = (uid: string) => `Misafir${uid.replace(/\D/g, '').slice(0, 4).padEnd(4, '7')}`;
@@ -93,7 +105,7 @@ export const Auth = {
               ? await fa.signInWithFacebook()
               : await fa.signInAnonymously();
       if (!res.user) throw new Error('Giriş yapılamadı');
-      set(fromFirebase(res.user, provider));
+      set(fromFirebase(res.user, provider, res.credential?.accessToken));
       return user!;
     }
     const uid = `demo-${provider}-${Math.random().toString(36).slice(2, 10)}`;
@@ -113,7 +125,7 @@ export const Auth = {
             ? await fa.linkWithApple()
             : await fa.linkWithFacebook();
       if (!res.user) throw new Error('Hesap bağlanamadı');
-      set(fromFirebase(res.user, provider));
+      set(fromFirebase(res.user, provider, res.credential?.accessToken));
       return user!;
     }
     set({ ...user, provider, name: user.provider === 'guest' ? DEMO_NAMES[provider] : user.name });

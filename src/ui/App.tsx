@@ -106,9 +106,11 @@ export function App() {
           settings={settings}
           prefs={prefs}
           playerName={user.name.split(' ')[0] || 'Sen'}
+          photoUrl={user.photoUrl}
+          premium={premium}
           onExit={() => setScreen('menu')} onGameEnd={onGameEnd} />
       )}
-      {screen === 'premium' && <PremiumScreen premium={premium} onBack={() => setScreen('menu')} />}
+      {screen === 'premium' && <PremiumScreen premium={premium} user={user} onBack={() => setScreen('menu')} />}
       {screen === 'rules' && <RulesScreen onBack={() => setScreen('menu')} />}
       {screen === 'settings' && (
         <SettingsScreen prefs={prefs} user={user} premium={premium} onChange={setPrefs} onBack={() => setScreen('menu')} />

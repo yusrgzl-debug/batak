@@ -1,9 +1,12 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Card, SUITS, SUIT_NAME, SUIT_SYMBOL, Suit, isRed, cardId } from '../../engine/cards';
 import { GameState, KITTY, MODE_INFO, Settings, bidOptions, ranking, teamOf } from '../../engine/game';
 import { legalMoves } from '../../engine/rules';
+import { Avatar, Crown } from '../components/Avatar';
+import { ChatPanel } from '../components/ChatPanel';
 import { Hand } from '../components/Hand';
+import { BUBBLE_MS, ChatMsg, botOnBidFailed, botOnBidMade, botOnGameEnd, botReplyTo } from '../chat';
 import { PlayingCard } from '../components/PlayingCard';
 import { HUMAN, useGame } from '../useGame';
 import { Prefs } from '../storage';
@@ -39,11 +42,13 @@ interface Props {
   settings: Settings;
   prefs: Prefs;
   playerName: string;
+  photoUrl: string | null;
+  premium: boolean;
   onExit: () => void;
   onGameEnd: (s: GameState) => void;
 }
 
-export function GameScreen({ settings, prefs, playerName, onExit, onGameEnd }: Props) {
+export function GameScreen({ settings, prefs, playerName, photoUrl, premium, onExit, onGameEnd }: Props) {
   const { state: s, bid, bury, trump, play, advance, restart } = useGame(settings, prefs.speed);
   const [showScores, setShowScores] = useState(false);
   const [confirmExit, setConfirmExit] = useState(false);
@@ -52,6 +57,44 @@ export function GameScreen({ settings, prefs, playerName, onExit, onGameEnd }: P
   const reported = useRef(false);
   const names = useMemo(() => [playerName, ...BOTS].slice(0, s.n), [playerName, s.n]);
   const esli = settings.mode === 'esli';
+  const me = { photoUrl, premium };
+
+  // ---- oda içi mesajlaşma ----
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatLog, setChatLog] = useState<ChatMsg[]>([]);
+  const [, setTick] = useState(0);
+  const say = useCallback((player: number, text: string) => {
+    const now = Date.now();
+    setChatLog((log) => [...log.slice(-30), { id: now + Math.random(), player, text, at: now }]);
+    window.setTimeout(() => setTick((t) => t + 1), BUBBLE_MS + 50); // re-render to hide the bubble
+  }, []);
+  const botSay = useCallback(
+    (text: string | null, delay = 900) => {
+      if (!text || !settings.chat) return;
+      const bot = 1 + Math.floor(Math.random() * (s.n - 1));
+      window.setTimeout(() => say(bot, text), delay + Math.random() * 800);
+    },
+    [say, settings.chat, s.n],
+  );
+  const bubbleOf = (p: number) => {
+    const m = [...chatLog].reverse().find((x) => x.player === p);
+    return m && Date.now() - m.at < BUBBLE_MS ? m.text : null;
+  };
+  const sendMine = (text: string) => {
+    say(HUMAN, text);
+    botSay(botReplyTo(text), 1200);
+  };
+
+  // bots react to how the hand went
+  const rounds = s.history.length;
+  useEffect(() => {
+    if (rounds === 0 || settings.mode === 'kozMaca') return;
+    const r = s.history[rounds - 1];
+    if (Math.random() < 0.45) botSay(r.delta[r.bidder] < 0 ? botOnBidFailed() : botOnBidMade(), 500);
+  }, [rounds]);
+  useEffect(() => {
+    if (s.phase === 'gameEnd') botSay(botOnGameEnd(), 1500);
+  }, [s.phase === 'gameEnd']);
 
   useEffect(() => {
     if (!toast) return;
@@ -130,6 +173,11 @@ export function GameScreen({ settings, prefs, playerName, onExit, onGameEnd }: P
           )}
           {s.highBid && <span className="chip">İhale {s.highBid.amount}</span>}
         </div>
+        {settings.chat && (
+          <button className="icon-btn" onClick={() => setChatOpen(true)} aria-label="Mesajlar">
+            💬
+          </button>
+        )}
         <button className="icon-btn" onClick={() => setShowScores(true)} aria-label="Puan tablosu">
           🏆
         </button>
@@ -141,7 +189,7 @@ export function GameScreen({ settings, prefs, playerName, onExit, onGameEnd }: P
         </div>
 
         {names.slice(1).map((_, i) => i + 1).map((p) => (
-          <Opponent key={p} p={p} s={s} name={names[p]} esli={esli} />
+          <Opponent key={p} p={p} s={s} name={names[p]} esli={esli} bubble={bubbleOf(p)} />
         ))}
 
         <div className="trick">
@@ -177,7 +225,7 @@ export function GameScreen({ settings, prefs, playerName, onExit, onGameEnd }: P
           )}
         </div>
 
-        <PlayerBadge p={HUMAN} s={s} name={names[HUMAN]} esli={esli} />
+        <PlayerBadge p={HUMAN} s={s} name={names[HUMAN]} esli={esli} bubble={bubbleOf(HUMAN)} {...me} />
 
         {/* Panels sit inside the table so the hand below stays visible while bidding. */}
         <AnimatePresence>
@@ -216,6 +264,7 @@ export function GameScreen({ settings, prefs, playerName, onExit, onGameEnd }: P
         {s.phase === 'gameEnd' && (
           <GameEndModal key="end" s={s} names={names} onRestart={restart} onExit={onExit} />
         )}
+        {chatOpen && <ChatPanel key="chat" log={chatLog} names={names} onSend={sendMine} onClose={() => setChatOpen(false)} />}
         {showScores && <ScoresModal key="scores" s={s} names={names} onClose={() => setShowScores(false)} />}
         {confirmExit && (
           <Modal key="exit" onClose={() => setConfirmExit(false)}>
@@ -241,18 +290,34 @@ function bidText(b: GameState['bids'][number]) {
   return b === 'pass' ? 'Pas' : String(b);
 }
 
-function PlayerBadge({ p, s, name, esli }: { p: number; s: GameState; name: string; esli: boolean }) {
+interface BadgeProps {
+  p: number;
+  s: GameState;
+  name: string;
+  esli: boolean;
+  bubble: string | null;
+  photoUrl?: string | null;
+  premium?: boolean;
+}
+
+function PlayerBadge({ p, s, name, esli, bubble, photoUrl, premium }: BadgeProps) {
   const active = s.turn === p && ['bidding', 'bury', 'trump', 'playing'].includes(s.phase);
   const isBidder = s.highBid?.player === p && s.phase !== 'bidding';
   const b = bidText(s.bids[p]);
   return (
     <div className={`badge badge--${seatOf(p, s.n)} ${active ? 'badge--active' : ''}`}>
-      <div className={`avatar avatar--${p} ${esli ? `team-${teamOf(p)}` : ''}`}>
-        {name[0]}
-        {isBidder && <span className="avatar-crown">♛</span>}
-      </div>
+      <Avatar name={name} photoUrl={photoUrl} premium={premium} className={`avatar--${p} ${esli ? `team-${teamOf(p)}` : ''}`}>
+        {isBidder && <span className="bidder-tag">İHALE</span>}
+      </Avatar>
       <div className="badge-info">
-        <span className="badge-name">{name}</span>
+        <span className="badge-name">
+          {name}
+          {premium && (
+            <span className="name-crown">
+              <Crown size={14} />
+            </span>
+          )}
+        </span>
         <span className="badge-stats">
           {s.phase !== 'bidding' && <span title="Aldığı el">🂠 {s.tricks[p]}</span>}
           <span className="badge-score">{s.scores[p]}</span>
@@ -261,11 +326,24 @@ function PlayerBadge({ p, s, name, esli }: { p: number; s: GameState; name: stri
       {b && (s.phase === 'bidding' || s.settings.mode === 'kozMaca') && (
         <span className={`bubble ${b === 'Pas' ? 'bubble--pass' : ''}`}>{b}</span>
       )}
+      <AnimatePresence>
+        {bubble && (
+          <motion.div
+            key={bubble}
+            className={`speech speech--${seatOf(p, s.n)}`}
+            initial={{ opacity: 0, scale: 0.6 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+          >
+            {bubble}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-function Opponent({ p, s, name, esli }: { p: number; s: GameState; name: string; esli: boolean }) {
+function Opponent({ p, s, name, esli, bubble }: Omit<BadgeProps, 'photoUrl' | 'premium'>) {
   const n = s.hands[p].length;
   const seat = seatOf(p, s.n);
   const vertical = seat === 'left' || seat === 'right';
@@ -276,7 +354,7 @@ function Opponent({ p, s, name, esli }: { p: number; s: GameState; name: string;
           <PlayingCard key={i} faceDown small style={{ zIndex: i }} />
         ))}
       </div>
-      <PlayerBadge p={p} s={s} name={name} esli={esli} />
+      <PlayerBadge p={p} s={s} name={name} esli={esli} bubble={bubble} />
     </div>
   );
 }

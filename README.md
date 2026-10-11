@@ -7,7 +7,11 @@ Tek kod tabanı: web (geliştirme/test) + iOS + Android (Capacitor).
 
 - **Giriş ekranı:** Apple, Google, Facebook veya misafir girişi (Firebase Authentication); misafir hesabı sonradan bağlanabilir, hesap silme ve oturum kapatma ayarlarda
 - **4 mod:** İhaleli, Eşli, Gömmeli (3 kişi), Koz Maça
-- **Oda kurma:** oyun tipi, 5 / 11 / 21 el, koz oynama kuralı (Koz Çıkmalı / Serbest)
+- **Oda kurma:** oyun tipi, 3 / 5 / 7 / 9 / 11 / 13 el (varsayılan 7), koz oynama kuralı (Koz Çıkmalı / Serbest), mesajlaşma açık/kapalı
+- **Klasik kartlar:** Adrian Kennard'ın kamu malı (CC0) klasik kart tasarımları, fildişi zemin ve altın kenarla
+- **Oda içi mesajlaşma:** hızlı sohbet mesajları, emojiler ve serbest yazı; botlar da cevap verir
+- **Premium ayrıcalığı:** profil fotoğrafında altın çerçeve ve kral tacı (menüde ve masada)
+- Facebook / Google ile girişte profil fotoğrafı otomatik gelir
 - **El düzeni:** kartlar iki sıra (altlı üstlü), renkler kırmızı-siyah dönüşümlü, büyük kartlar sağda
 - Ayarlar: ses, El Sonu Yaz Boz, Kart Gösterici, masa rengi, oyun hızı
 - Bilgisayar rakipler (kurallara tam uyan yapay zekâ)
@@ -34,6 +38,7 @@ npm install
 npm run dev        # http://localhost:5173
 npm test           # kural motoru + 60 bot oyunu simülasyonu
 npm run build
+npm run build:web  # tek dosyalık tarayıcı demosu: dist-web/batak.html
 ```
 
 Web sürümünde satın alma simüle edilir (Premium'a Geç → anında aktif). Ayarlar ekranındaki

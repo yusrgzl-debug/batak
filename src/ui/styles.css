@@ -152,22 +152,24 @@ button {
 .card {
   position: relative;
   width: 100%;
-  aspect-ratio: 5 / 7.2;
-  border-radius: 9%/6.5%;
-  background: linear-gradient(160deg, #fffdf7 0%, #f4eedf 60%, #e9e0c8 100%);
+  aspect-ratio: 5 / 7;
+  border-radius: 6% / 4.3%;
+  background: linear-gradient(160deg, #fffefa 0%, #f8f3e6 70%, #efe6cf 100%);
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.9) inset,
-    0 0 0 1px rgba(0, 0, 0, 0.18),
-    0 4px 10px rgba(0, 0, 0, 0.35);
+    inset 0 0 0 1px rgba(200, 144, 42, 0.55),
+    0 0 0 0.5px rgba(0, 0, 0, 0.35),
+    0 3px 8px rgba(0, 0, 0, 0.35);
   container-type: inline-size;
   overflow: hidden;
   transition: filter 0.2s, box-shadow 0.2s;
 }
-.card--red {
-  color: var(--red);
+/* the SVG brings its own white card shape; let our ivory stock show through instead */
+.card-face-svg {
+  display: block;
 }
-.card--black {
-  color: var(--black);
+.card-face-svg > rect:first-of-type {
+  fill: transparent;
+  stroke: none;
 }
 .card--playable {
   cursor: pointer;
@@ -177,97 +179,13 @@ button {
     0 6px 14px rgba(0, 0, 0, 0.4);
 }
 .card--dimmed {
-  filter: brightness(0.55) saturate(0.6);
-}
-.card-corner {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  line-height: 0.95;
-  font-weight: 800;
-}
-.card-corner--tl {
-  top: 5%;
-  left: 7%;
-}
-.card-corner--br {
-  bottom: 5%;
-  right: 7%;
-  transform: rotate(180deg);
-}
-.card-rank {
-  font-size: 24cqi;
-  letter-spacing: -1px;
-}
-.card-suit {
-  font-size: 20cqi;
-}
-.card-center {
-  position: absolute;
-  inset: 22% 18%;
-  display: grid;
-  place-items: center;
-}
-.card-pip {
-  font-size: 48cqi;
-  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.15));
-}
-.card-pip--ace {
-  font-size: 72cqi;
-}
-.card-face {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  border-radius: 6cqi;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background:
-    repeating-linear-gradient(45deg, rgba(200, 144, 42, 0.12) 0 3px, transparent 3px 7px),
-    linear-gradient(180deg, #fff8e6, #f1dfb3);
-  border: 1.5px solid var(--gold-2);
-  box-shadow: inset 0 0 0 2px #fff8e6, inset 0 0 0 3px rgba(200, 144, 42, 0.5);
-}
-.card-crown {
-  width: 46cqi;
-  fill: var(--gold-2);
-  stroke: #7a4f0e;
-  stroke-width: 1;
-}
-.card-face-letter {
-  font-family: 'Playfair Display', serif;
-  font-weight: 900;
-  font-size: 34cqi;
-  line-height: 1;
-}
-.card-face-suit {
-  font-size: 18cqi;
-  line-height: 1;
-}
-.card-face-title {
-  position: absolute;
-  bottom: 4cqi;
-  font-size: 7cqi;
-  letter-spacing: 1px;
-  font-weight: 800;
-  color: #7a4f0e;
+  filter: brightness(0.6) saturate(0.7);
 }
 .card--back {
-  background: linear-gradient(135deg, #7d1d2c, #4a0d18);
-  padding: 6%;
+  background: #fffaf2;
 }
-.card-back-inner {
-  width: 100%;
-  height: 100%;
-  border-radius: 6%;
-  border: 1.5px solid rgba(242, 193, 78, 0.8);
-  background:
-    radial-gradient(circle at 50% 50%, rgba(242, 193, 78, 0.35) 0 12%, transparent 13%),
-    repeating-conic-gradient(from 45deg, rgba(242, 193, 78, 0.22) 0 25%, transparent 0 50%) 0 0 / 10px 10px,
-    linear-gradient(135deg, #8e2335, #5a1020);
+.card-back-svg {
+  display: block;
 }
 .card--small {
   width: 34px;
@@ -620,7 +538,7 @@ button {
 .overlay {
   position: absolute;
   inset: 0;
-  z-index: 60;
+  z-index: 300; /* above the hand, whose bottom row stacks at z 100+ */
   display: grid;
   place-items: center;
   padding: 16px;
@@ -1157,6 +1075,7 @@ button {
 /* ---------- menu: profile + room setup ---------- */
 .profile-bar {
   width: 100%;
+  margin-top: 18px; /* room for the premium crown */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1308,4 +1227,216 @@ button {
 .link-row {
   display: flex;
   gap: 10px;
+}
+
+/* ---------- avatars & premium frame ---------- */
+.avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.avatar--premium {
+  box-shadow:
+    0 0 0 2px #6b4508,
+    0 0 0 4px #f2c14e,
+    0 0 0 5px #a8701a,
+    0 0 14px 4px rgba(242, 193, 78, 0.55);
+}
+.avatar--premium::after {
+  /* slow shimmer around the gold frame */
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0 70%, rgba(255, 255, 255, 0.85) 80%, transparent 90%);
+  -webkit-mask: radial-gradient(circle, transparent calc(50% - 4px), #000 calc(50% - 3px));
+  mask: radial-gradient(circle, transparent calc(50% - 4px), #000 calc(50% - 3px));
+  animation: spin 4s linear infinite;
+  pointer-events: none;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.avatar-premium-crown {
+  position: absolute;
+  top: -42%;
+  left: 50%;
+  transform: translateX(-50%) rotate(-8deg);
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.5));
+  line-height: 0;
+  z-index: 2;
+}
+.name-crown {
+  display: inline-block;
+  margin-left: 4px;
+  vertical-align: -2px;
+}
+.premium-preview {
+  margin: 34px 0 12px;
+}
+.premium-preview .avatar {
+  background: linear-gradient(135deg, #ffe08a, var(--gold-2));
+  color: #3b2400;
+}
+.profile-avatar {
+  background: linear-gradient(135deg, #ffe08a, var(--gold-2));
+  color: #3b2400;
+}
+.bidder-tag {
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0 4px;
+  border-radius: 4px;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  color: #3b2400;
+  background: var(--gold);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* ---------- chat ---------- */
+.speech {
+  position: absolute;
+  z-index: 30;
+  max-width: 180px;
+  width: max-content;
+  padding: 8px 12px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1b1b22;
+  background: #fffdf5;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+.speech::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: inherit;
+  transform: rotate(45deg);
+}
+.speech--bottom {
+  bottom: calc(100% + 10px);
+  left: 50%;
+  translate: -50% 0;
+}
+.speech--bottom::after,
+.speech--top::after {
+  left: calc(50% - 6px);
+}
+.speech--bottom::after {
+  bottom: -5px;
+}
+.speech--top {
+  top: calc(100% + 10px);
+  left: 50%;
+  translate: -50% 0;
+}
+.speech--top::after {
+  top: -5px;
+}
+.speech--left {
+  left: calc(100% + 10px);
+  top: 10px;
+}
+.speech--left::after {
+  left: -5px;
+  top: 12px;
+}
+.speech--right {
+  right: calc(100% + 10px);
+  top: 10px;
+}
+.speech--right::after {
+  right: -5px;
+  top: 12px;
+}
+.overlay--chat {
+  place-items: end center;
+  padding: 0;
+}
+.chat {
+  width: 100%;
+  max-width: 560px;
+  padding: 14px 14px calc(14px + var(--safe-bottom));
+  border-radius: 22px 22px 0 0;
+  background: linear-gradient(180deg, #13392b, #0a1f17);
+  border-top: 1px solid rgba(242, 193, 78, 0.45);
+  box-shadow: 0 -20px 50px rgba(0, 0, 0, 0.5);
+}
+.chat-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.chat-head .icon-btn {
+  width: 34px;
+  height: 34px;
+  font-size: 15px;
+}
+.chat-log {
+  max-height: 110px;
+  overflow-y: auto;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  border-radius: 12px;
+  font-size: 13px;
+  background: rgba(0, 0, 0, 0.3);
+}
+.chat-line + .chat-line {
+  margin-top: 3px;
+}
+.chat-line--me b {
+  color: var(--gold);
+}
+.chat-emojis {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.chat-emojis button {
+  height: 42px;
+  font-size: 24px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+}
+.chat-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.chat-quick button {
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+.chat-input {
+  display: flex;
+  gap: 8px;
+}
+.chat-input input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--ink);
+  font: inherit;
+}
+.chat-input .btn {
+  padding: 10px 14px;
 }

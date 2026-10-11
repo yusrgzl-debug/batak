@@ -1,4 +1,5 @@
-import { Card, SUIT_SYMBOL, isRed, rankLabel } from '../../engine/cards';
+import * as deck from '@letele/playing-cards';
+import { Card, rankLabel } from '../../engine/cards';
 
 interface Props {
   card?: Card;
@@ -14,8 +15,13 @@ interface Props {
   style?: React.CSSProperties;
 }
 
-const FACE_TITLE: Record<number, string> = { 11: 'VALE', 12: 'KIZ', 13: 'PAPAZ' };
+/** Component name in @letele/playing-cards: suit letter + rank, e.g. "Hk", "S10", "Da". */
+const faceKey = (c: Card) => c.suit + (c.rank <= 10 ? String(c.rank) : rankLabel(c.rank).toLowerCase());
 
+/**
+ * Classic (English pattern) card faces from Adrian Kennard's public-domain designs, set on
+ * an ivory card stock with a fine gold edge for the premium look.
+ */
 export function PlayingCard({ card, faceDown, playable, glow, selected, fresh, dimmed, small, onClick, style }: Props) {
   const cls = [
     'card',
@@ -28,46 +34,47 @@ export function PlayingCard({ card, faceDown, playable, glow, selected, fresh, d
   if (faceDown || !card) {
     return (
       <div className={[...cls, 'card--back'].filter(Boolean).join(' ')} style={style}>
-        <div className="card-back-inner" />
+        <CardBack />
       </div>
     );
   }
-  const sym = SUIT_SYMBOL[card.suit];
-  const label = rankLabel(card.rank);
-  const color = isRed(card.suit) ? 'card--red' : 'card--black';
-  const face = card.rank >= 11 && card.rank <= 13;
-
+  const Face = deck[faceKey(card)];
   return (
     <div
-      className={[...cls, color].filter(Boolean).join(' ')}
+      className={cls.filter(Boolean).join(' ')}
       style={style}
       onClick={playable ? onClick : undefined}
       role={playable ? 'button' : undefined}
-      aria-label={`${label}${sym}`}
+      aria-label={`${rankLabel(card.rank)}${card.suit}`}
     >
-      <div className="card-corner card-corner--tl">
-        <span className="card-rank">{label}</span>
-        <span className="card-suit">{sym}</span>
-      </div>
-      <div className="card-center">
-        {face ? (
-          <div className="card-face">
-            <svg viewBox="0 0 40 20" className="card-crown" aria-hidden>
-              <path d="M2 18 L6 4 L13 12 L20 2 L27 12 L34 4 L38 18 Z" />
-            </svg>
-            <span className="card-face-letter">{label}</span>
-            <span className="card-face-suit">{sym}</span>
-            <span className="card-face-title">{FACE_TITLE[card.rank]}</span>
-          </div>
-        ) : (
-          <span className={card.rank === 14 ? 'card-pip card-pip--ace' : 'card-pip'}>{sym}</span>
-        )}
-      </div>
+      <Face className="card-face-svg" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" />
       {fresh && <span className="card-fresh">YENİ</span>}
-      <div className="card-corner card-corner--br">
-        <span className="card-rank">{label}</span>
-        <span className="card-suit">{sym}</span>
-      </div>
     </div>
+  );
+}
+
+/** Red ornamental back with a white margin, in the spirit of classic casino decks. */
+function CardBack() {
+  return (
+    <svg className="card-back-svg" viewBox="0 0 100 140" width="100%" height="100%" aria-hidden>
+      <defs>
+        <pattern id="cb-lattice" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <rect width="8" height="8" fill="#b3122a" />
+          <path d="M0 4h8M4 0v8" stroke="#e8606f" strokeWidth="0.9" />
+          <circle cx="4" cy="4" r="1.3" fill="#fff3f3" />
+        </pattern>
+      </defs>
+      <rect x="0" y="0" width="100" height="140" rx="7" fill="#fffaf2" />
+      <rect x="6" y="6" width="88" height="128" rx="4" fill="url(#cb-lattice)" stroke="#8a0d20" strokeWidth="1.2" />
+      <rect x="10" y="10" width="80" height="120" rx="3" fill="none" stroke="#fff3f3" strokeWidth="0.8" />
+      <g transform="translate(50 70)">
+        <ellipse rx="22" ry="28" fill="#b3122a" stroke="#fff3f3" strokeWidth="1.4" />
+        <ellipse rx="17" ry="22" fill="none" stroke="#e7c36a" strokeWidth="1" />
+        {[0, 45, 90, 135].map((a) => (
+          <ellipse key={a} rx="4" ry="13" fill="none" stroke="#fff3f3" strokeWidth="0.9" transform={`rotate(${a})`} />
+        ))}
+        <circle r="3.2" fill="#e7c36a" />
+      </g>
+    </svg>
   );
 }

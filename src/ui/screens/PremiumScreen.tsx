@@ -1,19 +1,23 @@
 import { useState } from 'react';
 import { Plan } from '../../services/config';
+import { User } from '../../services/auth';
 import { Premium } from '../../services/premium';
+import { Avatar } from '../components/Avatar';
 
 interface Props {
   premium: boolean;
+  user: User;
   onBack: () => void;
 }
 
 const PERKS = [
+  ['👑', 'Altın çerçeve ve kral tacı', 'Profil fotoğrafında ve masada herkes görsün'],
   ['🚫', 'Tüm reklamlar kalkar', 'Banner ve oyun arası reklam yok'],
   ['⚡', 'Kesintisiz oyun', 'Oyunlar arasında bekleme yok'],
   ['❤️', 'Geliştirmeyi destekle', 'Yeni modlar ve özellikler için'],
 ];
 
-export function PremiumScreen({ premium, onBack }: Props) {
+export function PremiumScreen({ premium, user, onBack }: Props) {
   const [plan, setPlan] = useState<Plan>('yearly');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -36,7 +40,10 @@ export function PremiumScreen({ premium, onBack }: Props) {
       <button className="icon-btn back" onClick={onBack} aria-label="Geri">
         ‹
       </button>
-      <div className="premium-crown">♛</div>
+      {/* preview of the perk on the player's own avatar */}
+      <div className="premium-preview">
+        <Avatar name={user.name} photoUrl={user.photoUrl} premium size={92} />
+      </div>
       <h1 className="premium-title">Batak Premium</h1>
       <p className="muted">Reklamsız, kesintisiz batak keyfi.</p>
 

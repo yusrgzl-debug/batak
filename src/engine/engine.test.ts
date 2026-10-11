@@ -147,7 +147,7 @@ describe('gömmeli', () => {
 
 function simulate(mode: Mode, seed: number, trumpRule: 'zorunlu' | 'serbest' = 'zorunlu'): GameState {
   const rand = seeded(seed);
-  let s = newGame({ mode, rounds: 3, minBid: 5, trumpRule }, rand);
+  let s = newGame({ ...DEFAULT_SETTINGS, mode, rounds: 3, trumpRule }, rand);
   let guard = 0;
   while (s.phase !== 'gameEnd' && guard++ < 10000) {
     if (s.phase === 'bidding') s = placeBid(s, s.turn, botBid(s, s.turn));

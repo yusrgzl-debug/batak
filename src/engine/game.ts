@@ -21,9 +21,13 @@ export interface Settings {
   rounds: number;
   minBid: number;
   trumpRule: TrumpRule;
+  /** Oda içi mesajlaşma açık mı */
+  chat: boolean;
 }
 
-export const DEFAULT_SETTINGS: Settings = { mode: 'ihaleli', rounds: 11, minBid: 5, trumpRule: 'zorunlu' };
+export const ROUND_OPTIONS = [3, 5, 7, 9, 11, 13];
+
+export const DEFAULT_SETTINGS: Settings = { mode: 'ihaleli', rounds: 7, minBid: 5, trumpRule: 'zorunlu', chat: true };
 
 export const playerCount = (mode: Mode) => (mode === 'gommeli' ? 3 : 4);
 export const handSize = (mode: Mode) => (mode === 'gommeli' ? 16 : 13);
