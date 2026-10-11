@@ -1,13 +1,14 @@
-// Renders every card face to a static HTML page for design review: `npx vite-node scripts/card-preview.tsx`
-import { writeFileSync, readFileSync } from 'node:fs';
-import { renderToStaticMarkup } from 'react-dom/server';
-import { Card, RANKS, SUITS, Suit } from '../src/engine/cards';
-import { CardBack, CardFace } from '../src/ui/components/cardArt';
+// Builds a one-page review of the card deck: `npx vite-node scripts/card-preview.tsx`
+import { readFileSync, writeFileSync } from 'node:fs';
+import { Card, RANKS, Suit, rankLabel } from '../src/engine/cards';
+
+const svg = (name: string) => `data:image/svg+xml;base64,${readFileSync(`src/assets/deck/${name}.svg`).toString('base64')}`;
+const img = (name: string) => `<div class="card"><img src="${svg(name)}" alt=""></div>`;
 
 const order: Suit[] = ['S', 'H', 'C', 'D'];
 const NAMES: Record<Suit, string> = { S: 'Maça', H: 'Kupa', C: 'Sinek', D: 'Karo' };
 const ranks = [14, ...RANKS.filter((r) => r !== 14)];
-const face = (c: Card) => `<div class="card">${renderToStaticMarkup(<CardFace card={c} />)}</div>`;
+const face = (c: Card) => img(`${c.suit}_${rankLabel(c.rank)}`);
 
 const rows = order
   .map((s) => `<h2>${NAMES[s]}</h2><div class="row">${ranks.map((r) => face({ suit: s, rank: r as Card['rank'] })).join('')}</div>`)
@@ -38,10 +39,8 @@ h2{font-size:15px;margin:18px 0 8px;color:var(--muted);font-weight:600}
 @media (max-width:760px){.row{grid-template-columns:repeat(5,minmax(0,1fr))}}
 .big{display:grid;grid-template-columns:repeat(4,minmax(0,220px));gap:16px}
 @media (max-width:760px){.big{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.card{position:relative;aspect-ratio:5/7;border-radius:8%/5.7%;overflow:hidden;
- background:radial-gradient(ellipse 75% 70% at 50% 48%,#fff 35%,#f1efe6 75%,#e2dfd2 100%);
- box-shadow:0 0 0 .5px rgba(0,0,0,.35),-2px 2px 6px rgba(0,0,0,.35)}
-.card svg{display:block;width:100%;height:100%}
+.card{position:relative;aspect-ratio:420/620;border-radius:8.1%/5.5%;overflow:hidden;box-shadow:-2px 2px 6px rgba(0,0,0,.35)}
+.card img{display:block;width:100%;height:100%}
 .backs{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:10px;max-width:180px}
 .hand{position:relative;height:280px;max-width:420px;margin-top:8px;background:linear-gradient(#5a3218,#2a1407);border-top:2px solid #8a5a2b;border-radius:10px;padding:10px}
 .hc{position:absolute;width:21%}
@@ -49,8 +48,8 @@ h2{font-size:15px;margin:18px 0 8px;color:var(--muted);font-weight:600}
 </style>
 <main>
 <h1>Kart Tasarımı</h1>
-<p>Gönderdiğin örneklere göre: krem zemin, uzun dar rakamlar ve tırnaklı harfler, ince iç çerçeve, ortada tek büyük simge, klasik çift başlı figürler.</p>
-<h2>Yakın plan (gönderdiğin örneklerin karşılığı)</h2>
+<p>Yüklediğin Klasik İskambil Destesi (SVG). Oyunda bu kartlar kullanılıyor.</p>
+<h2>Yakın plan</h2>
 <div class="big">${[
   { suit: 'H', rank: 12 },
   { suit: 'C', rank: 6 },
@@ -58,7 +57,7 @@ h2{font-size:15px;margin:18px 0 8px;color:var(--muted);font-weight:600}
   { suit: 'S', rank: 13 },
 ].map((c) => face(c as Card)).join('')}</div>
 ${rows}
-<h2>Kart arkası</h2><div class="backs"><div class="card">${renderToStaticMarkup(<CardBack />)}</div></div>
+<h2>Kart arkası</h2><div class="backs">${img('BACK')}</div>
 <h2>Elde görünüm (16 kart, iki sıra)</h2>
 <div class="hand">${handRow(top, 10)}${handRow(bottom, 120)}</div>
 </main>`;

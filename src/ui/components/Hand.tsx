@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import { Card, cardId } from '../../engine/cards';
 import { arrangeHand } from '../handLayout';
+import { CARD_RATIO } from './deck';
 import { PlayingCard } from './PlayingCard';
 
 interface Props {
@@ -45,11 +46,11 @@ export function Hand({ cards, isActive, dimInactive, selected, fresh, onTap }: P
   const MIN_STRIP = 0.3; // the corner index is ~22% of the card width
   const MAX_TILT = 2; // degrees at the ends of a row: a light fan, cards stay upright
   // room for the outer cards' rotation (they pivot around a point below the card)
-  const spill = (w: number) => w * 1.4 * 1.2 * Math.sin((MAX_TILT * Math.PI) / 180);
+  const spill = (w: number) => (w / CARD_RATIO) * 1.2 * Math.sin((MAX_TILT * Math.PI) / 180);
   let cardW = Math.min(width * 0.26, 150, (width - 20) / (1 + (longest - 1) * MIN_STRIP));
   cardW = Math.min(cardW, (width - 20 - 2 * spill(cardW)) / (1 + (longest - 1) * MIN_STRIP));
   const avail = width - 20 - 2 * spill(cardW);
-  const cardH = cardW * 1.4;
+  const cardH = cardW / CARD_RATIO;
   // the top row shows rank + suit (top ~30% of a card) above the bottom row
   const rowGap = cardH * 0.42;
   const step = longest > 1 ? Math.min(cardW * 0.62, (avail - cardW) / (longest - 1)) : 0;

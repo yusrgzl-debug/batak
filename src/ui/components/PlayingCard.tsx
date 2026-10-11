@@ -1,5 +1,5 @@
 import { Card, rankLabel } from '../../engine/cards';
-import { CardBack, CardFace } from './cardArt';
+import { backImage, cardImage } from './deck';
 
 interface Props {
   card?: Card;
@@ -17,7 +17,7 @@ interface Props {
   style?: React.CSSProperties;
 }
 
-/** A playing card: flat illustrated faces (see cardArt.tsx) on an off-white stock. */
+/** A playing card drawn from the classic deck artwork (see deck.ts). */
 export function PlayingCard({ card, faceDown, playable, glow, selected, fresh, dimmed, small, hiddenRight = 0, onClick, style }: Props) {
   const cls = [
     'card',
@@ -27,23 +27,26 @@ export function PlayingCard({ card, faceDown, playable, glow, selected, fresh, d
     selected && 'card--selected',
     fresh && 'card--fresh',
     dimmed && 'card--dimmed',
-  ];
+    (faceDown || !card) && 'card--back',
+  ]
+    .filter(Boolean)
+    .join(' ');
   if (faceDown || !card) {
     return (
-      <div className={[...cls, 'card--back'].filter(Boolean).join(' ')} style={style}>
-        <CardBack />
+      <div className={cls} style={style}>
+        <img className="card-img" src={backImage} alt="" draggable={false} />
       </div>
     );
   }
   return (
     <div
-      className={cls.filter(Boolean).join(' ')}
+      className={cls}
       style={style}
       onClick={playable ? onClick : undefined}
       role={playable ? 'button' : undefined}
       aria-label={`${rankLabel(card.rank)}${card.suit}`}
     >
-      <CardFace card={card} />
+      <img className="card-img" src={cardImage(card)} alt="" draggable={false} />
       {fresh && (
         <span className="card-fresh" style={{ right: hiddenRight + 3 }}>
           YENİ
