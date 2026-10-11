@@ -1,7 +1,7 @@
 import { Card, rankLabel } from '../../engine/cards';
 
 /**
- * The card artwork: the "Klasik İskambil Destesi" SVG set (based on htdebeer's SVG-cards,
+ * The card artwork: the classic deck with Poppins indices (SVG) (based on htdebeer's SVG-cards,
  * LGPL-2.1 — see src/assets/deck/LICENSE-LGPL-2.1.txt). Files are named like S_A, H_10, C_K, BACK.
  */
 const files = import.meta.glob('../../assets/deck/*.svg', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;

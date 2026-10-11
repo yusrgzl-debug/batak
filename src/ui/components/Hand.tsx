@@ -43,7 +43,7 @@ export function Hand({ cards, isActive, dimInactive, selected, fresh, onTap }: P
   const longest = Math.max(1, ...rows.map((r) => r.length));
   // Big cards (about a quarter of the screen wide) that overlap heavily: the visible strip of each
   // card (at least MIN_STRIP of its width) always shows the full jumbo index.
-  const MIN_STRIP = 0.3; // the corner index is ~22% of the card width
+  const MIN_STRIP = 0.33; // the corner index ("10" in Poppins) is ~28% of the card width
   const MAX_TILT = 2; // degrees at the ends of a row: a light fan, cards stay upright
   // room for the outer cards' rotation (they pivot around a point below the card)
   const spill = (w: number) => (w / CARD_RATIO) * 1.2 * Math.sin((MAX_TILT * Math.PI) / 180);

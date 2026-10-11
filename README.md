@@ -8,7 +8,7 @@ Tek kod tabanı: web (geliştirme/test) + iOS + Android (Capacitor).
 - **Giriş ekranı:** Apple, Google, Facebook veya misafir girişi (Firebase Authentication); misafir hesabı sonradan bağlanabilir, hesap silme ve oturum kapatma ayarlarda
 - **4 mod:** İhaleli, Eşli, Gömmeli (3 kişi), Koz Maça
 - **Oda kurma:** oyun tipi, 3 / 5 / 7 / 9 / 11 / 13 el (varsayılan 7), koz oynama kuralı (Koz Çıkmalı / Serbest), mesajlaşma açık/kapalı
-- **Kart tasarımı:** Klasik İskambil Destesi (SVG, `src/assets/deck/`), htdebeer/SVG-cards tabanlı, LGPL-2.1 lisanslı (`src/assets/deck/LICENSE-LGPL-2.1.txt`); mağaza sürümünde lisans metni uygulama içi "Lisanslar" bölümünde gösterilmeli
+- **Kart tasarımı:** Poppins indeksli klasik iskambil destesi (SVG, `src/assets/deck/`), htdebeer/SVG-cards tabanlı, LGPL-2.1 lisanslı (`src/assets/deck/LICENSE-LGPL-2.1.txt`); mağaza sürümünde lisans metni uygulama içi "Lisanslar" bölümünde gösterilmeli
 - **Oda Bul / Oda Kur:** puanlı masalar; giriş bedeli ve ödül masaya göre, yüksek ödüllü masalara yüksek puanlı oyuncular girer
 - **Puan ekonomisi:** günlük giriş ödülü, ödüllü reklamla günde 2 kez puan, masadan çıkana 500 Pt ceza ve yerine bot
 - **Sıra süresi:** her hamle için 10 saniye; avatarın etrafında dönen halka, süre dolunca en iyi hamle otomatik yapılır

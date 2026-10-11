@@ -48,7 +48,7 @@ h2{font-size:15px;margin:18px 0 8px;color:var(--muted);font-weight:600}
 </style>
 <main>
 <h1>Kart Tasarımı</h1>
-<p>Yüklediğin Klasik İskambil Destesi (SVG). Oyunda bu kartlar kullanılıyor.</p>
+<p>Yüklediğin Poppins indeksli deste (SVG). Oyunda bu kartlar kullanılıyor.</p>
 <h2>Yakın plan</h2>
 <div class="big">${[
   { suit: 'H', rank: 12 },
