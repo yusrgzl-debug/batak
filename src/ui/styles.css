@@ -154,7 +154,8 @@ button {
   width: 100%;
   aspect-ratio: 5 / 7;
   border-radius: 8% / 5.7%;
-  background: linear-gradient(100deg, #ffffff 0%, #fafafa 55%, #e9e8e4 100%);
+  /* cream stock, bright in the middle and slightly darker towards the edges */
+  background: radial-gradient(ellipse 75% 70% at 50% 48%, #ffffff 35%, #f1efe6 75%, #e2dfd2 100%);
   box-shadow:
     0 0 0 0.5px rgba(0, 0, 0, 0.35),
     -2px 2px 6px rgba(0, 0, 0, 0.28);

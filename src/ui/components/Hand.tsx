@@ -42,7 +42,7 @@ export function Hand({ cards, isActive, dimInactive, selected, fresh, onTap }: P
   const longest = Math.max(1, ...rows.map((r) => r.length));
   // Big cards (about a quarter of the screen wide) that overlap heavily: the visible strip of each
   // card (at least MIN_STRIP of its width) always shows the full jumbo index.
-  const MIN_STRIP = 0.37;
+  const MIN_STRIP = 0.3; // the corner index is ~22% of the card width
   const MAX_TILT = 2; // degrees at the ends of a row: a light fan, cards stay upright
   // room for the outer cards' rotation (they pivot around a point below the card)
   const spill = (w: number) => w * 1.4 * 1.2 * Math.sin((MAX_TILT * Math.PI) / 180);
@@ -50,8 +50,8 @@ export function Hand({ cards, isActive, dimInactive, selected, fresh, onTap }: P
   cardW = Math.min(cardW, (width - 20 - 2 * spill(cardW)) / (1 + (longest - 1) * MIN_STRIP));
   const avail = width - 20 - 2 * spill(cardW);
   const cardH = cardW * 1.4;
-  // the top row shows rank + suit (top ~48% of a card) above the bottom row
-  const rowGap = cardH * 0.52;
+  // the top row shows rank + suit (top ~30% of a card) above the bottom row
+  const rowGap = cardH * 0.42;
   const step = longest > 1 ? Math.min(cardW * 0.62, (avail - cardW) / (longest - 1)) : 0;
   const height = cardH + (twoRows ? rowGap : 0) + 34;
 
