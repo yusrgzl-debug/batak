@@ -15,7 +15,10 @@ const TRUMP_RULES: { value: TrumpRule; label: string; desc: string }[] = [
 
 /** Oyun tipi, el sayısı, koz kuralı ve mesajlaşma: shared by Oda Kur and Botlarla Pratik. */
 export function RoomForm<T extends RoomFormValue>({ value, onChange }: { value: T; onChange: (v: T) => void }) {
-  const rule = TRUMP_RULES.find((r) => r.value === value.trumpRule)!;
+  // Gömmeli is always "Koz Çıkmalı"
+  const fixedRule = value.mode === 'gommeli';
+  const ruleValue: TrumpRule = fixedRule ? 'zorunlu' : value.trumpRule;
+  const rule = TRUMP_RULES.find((r) => r.value === ruleValue)!;
   return (
     <>
       <div className="room-row">
@@ -48,14 +51,18 @@ export function RoomForm<T extends RoomFormValue>({ value, onChange }: { value: 
           {TRUMP_RULES.map((r) => (
             <button
               key={r.value}
-              className={`seg-btn ${value.trumpRule === r.value ? 'seg-btn--on' : ''}`}
+              className={`seg-btn ${ruleValue === r.value ? 'seg-btn--on' : ''}`}
+              disabled={fixedRule && r.value !== 'zorunlu'}
               onClick={() => onChange({ ...value, trumpRule: r.value })}
             >
               {r.label}
             </button>
           ))}
         </div>
-        <span className="room-help">{rule.desc}</span>
+        <span className="room-help">
+          {rule.desc}
+          {fixedRule && ' Gömmeli’de her zaman geçerli.'}
+        </span>
       </div>
 
       <div className="room-row room-row--inline">

@@ -101,7 +101,7 @@ src/ui/       React ekranları, bileşenler, stiller
 
 ## Puanlama
 
-- **Gömmeli (3 kişi):** 16'şar kart, 4 kart yerde. İhale en az 7. İhaleyi alan önce kozu seçer,
+- **Gömmeli (3 kişi):** 16'şar kart, 4 kart yerde. İhale en az 8, koz çıkmak zorunlu. İhaleyi alan önce kozu seçer,
   sonra elinden 4 kart gömer; gömdükten sonra yerdeki 4 kart eline gelir (ilk turda "YENİ"
   etiketiyle) ve oyuna o başlar. Gömülen kartlar sayılmaz; puanlama İhaleli ile aynı.
 - **İhaleli:** İhaleci tutturursa aldığı el kadar +, tutturamazsa ihale kadar −. Diğerleri aldığı

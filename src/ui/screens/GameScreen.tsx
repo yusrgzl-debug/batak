@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Card, SUITS, SUIT_NAME, SUIT_SYMBOL, Suit, isRed, cardId } from '../../engine/cards';
 import { payouts } from '../../engine/economy';
-import { GameState, KITTY, MODE_INFO, Settings, bidOptions, finishOrder, ranking, teamOf } from '../../engine/game';
+import { GameState, KITTY, MODE_INFO, Settings, bidOptions, finishOrder, ranking, teamOf, trumpRuleFor } from '../../engine/game';
 import { LocalOnline, PlayerProfile, Room } from '../../services/online';
 import { pt } from '../format';
 import { PlayerCard } from './SocialScreens';
@@ -174,8 +174,8 @@ export function GameScreen({ settings, prefs, playerName, photoUrl, premium, tab
 
   const myTurnToPlay = s.phase === 'playing' && s.turn === HUMAN;
   const legal = useMemo(
-    () => (myTurnToPlay ? legalMoves(s.hands[HUMAN], s.trick, s.trump, s.trumpBroken, settings.trumpRule) : []),
-    [myTurnToPlay, s.hands, s.trick, s.trump, s.trumpBroken, settings.trumpRule],
+    () => (myTurnToPlay ? legalMoves(s.hands[HUMAN], s.trick, s.trump, s.trumpBroken, trumpRuleFor(settings)) : []),
+    [myTurnToPlay, s.hands, s.trick, s.trump, s.trumpBroken, settings],
   );
   const isLegal = (c: Card) => legal.some((l) => cardId(l) === cardId(c));
   const burying = s.phase === 'bury' && s.turn === HUMAN;

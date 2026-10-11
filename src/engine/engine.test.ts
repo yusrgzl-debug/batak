@@ -125,7 +125,14 @@ describe('gömmeli', () => {
     expect(s.n).toBe(3);
     expect(s.hands.map((h) => h.length)).toEqual([16, 16, 16]);
     expect(s.kitty).toHaveLength(4);
-    expect(bidOptions(s).min).toBe(7);
+    expect(bidOptions(s).min).toBe(8);
+  });
+
+  it('always plays Koz Çıkmalı, even if the room says Serbest', () => {
+    let s = newGame({ ...settings, trumpRule: 'serbest' }, seeded(9));
+    s = { ...s, phase: 'playing', trump: 'S', trumpBroken: false, turn: 1, trick: [{ player: 0, card: c('H10') }], hands: [[], [c('S3'), c('D4')], []] };
+    expect(playCard(s, 1, c('D4'))).toBe(s); // must trump
+    expect(playCard(s, 1, c('S3'))).not.toBe(s);
   });
 
   it('bidder chooses trump, buries 4 of their own cards, then receives the kitty', () => {

@@ -1,5 +1,5 @@
 import { Card, Suit, SUITS } from './cards';
-import { GameState, KITTY, bidOptions, partnerOf } from './game';
+import { GameState, KITTY, bidOptions, partnerOf, trumpRuleFor } from './game';
 import { beats, currentWinner, legalMoves } from './rules';
 
 const bySuit = (hand: Card[], s: Suit) => hand.filter((c) => c.suit === s);
@@ -71,7 +71,7 @@ const highest = (cards: Card[]) => cards.reduce((a, b) => (b.rank > a.rank ? b :
 
 export function botPlay(s: GameState, p: number): Card {
   const hand = s.hands[p];
-  const legal = legalMoves(hand, s.trick, s.trump, s.trumpBroken, s.settings.trumpRule);
+  const legal = legalMoves(hand, s.trick, s.trump, s.trumpBroken, trumpRuleFor(s.settings));
   if (legal.length === 1) return legal[0];
   const trump = s.trump;
   const esli = s.settings.mode === 'esli';

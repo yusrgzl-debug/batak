@@ -202,7 +202,7 @@ export class LocalOnline implements OnlineService {
         {
           mode: pick(modes, r),
           rounds: pick([5, 7, 7, 9, 11], r),
-          trumpRule: r() < 0.8 ? 'zorunlu' : 'serbest',
+          trumpRule: r() < 0.8 ? 'zorunlu' : 'serbest', // Gömmeli always plays Koz Çıkmalı (see roomSettings)
           chat: r() < 0.85,
           prize: pick([...ECONOMY.PRIZES], r),
         },
@@ -322,7 +322,7 @@ const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export const roomSettings = (room: RoomOptions): Settings => ({
   mode: room.mode,
   rounds: room.rounds,
-  trumpRule: room.trumpRule,
+  trumpRule: room.mode === 'gommeli' ? 'zorunlu' : room.trumpRule,
   chat: room.chat,
   minBid: 5,
 });

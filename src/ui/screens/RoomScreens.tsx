@@ -227,7 +227,7 @@ export function RoomListScreen({
                   <b>{MODE_INFO[r.mode].title}</b>
                   <span className="muted small">
                     {' '}
-                    · {r.rounds} el · {r.trumpRule === 'zorunlu' ? 'Koz Çıkmalı' : 'Serbest'}
+                    · {r.rounds} el · {r.trumpRule === 'zorunlu' || r.mode === 'gommeli' ? 'Koz Çıkmalı' : 'Serbest'}
                     {!r.chat && ' · Mesaj kapalı'}
                   </span>
                 </div>

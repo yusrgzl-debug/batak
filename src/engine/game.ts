@@ -6,7 +6,7 @@ export type Mode = 'ihaleli' | 'esli' | 'gommeli' | 'kozMaca';
 export const MODE_INFO: Record<Mode, { title: string; desc: string }> = {
   ihaleli: { title: 'İhaleli', desc: '4 kişi. İhaleyi kazanan kozu seçer, herkes kendi için oynar.' },
   esli: { title: 'Eşli', desc: '4 kişi. Karşılıklı oturanlar takım, ihaleyi takım tutturur.' },
-  gommeli: { title: 'Gömmeli', desc: '3 kişi, 16’şar kart. İhaleyi alan kozu seçer, 4 kart gömer, sonra yerdeki 4 kartı alır.' },
+  gommeli: { title: 'Gömmeli', desc: '3 kişi, 16’şar kart, ihale en az 8. İhaleyi alan kozu seçer, 4 kart gömer, sonra yerdeki 4 kartı alır. Koz çıkmak zorunlu.' },
   kozMaca: { title: 'Koz Maça', desc: '4 kişi. Koz her zaman maça, herkes kaç el alacağını söyler.' },
 };
 
@@ -32,8 +32,12 @@ export const DEFAULT_SETTINGS: Settings = { mode: 'ihaleli', rounds: 7, minBid: 
 export const playerCount = (mode: Mode) => (mode === 'gommeli' ? 3 : 4);
 export const handSize = (mode: Mode) => (mode === 'gommeli' ? 16 : 13);
 export const KITTY = 4;
-/** Gömmeli is usually bid from 7 (16 tricks per hand); other modes use the configured minimum. */
-export const minBidFor = (s: Settings) => (s.mode === 'gommeli' ? Math.max(s.minBid, 7) : s.minBid);
+/** Gömmeli is bid from 8 (16 tricks per hand); other modes use the configured minimum. */
+export const GOMMELI_MIN_BID = 8;
+export const minBidFor = (s: Settings) => (s.mode === 'gommeli' ? Math.max(s.minBid, GOMMELI_MIN_BID) : s.minBid);
+
+/** Gömmeli is always played "Koz Çıkmalı": a player void in the led suit must trump. */
+export const trumpRuleFor = (s: Settings): TrumpRule => (s.mode === 'gommeli' ? 'zorunlu' : s.trumpRule);
 
 export type Phase = 'bidding' | 'bury' | 'trump' | 'playing' | 'trickEnd' | 'roundEnd' | 'gameEnd';
 export type Bid = number | 'pass' | null;
@@ -198,7 +202,7 @@ export function chooseTrump(s: GameState, suit: Suit): GameState {
 export function playCard(s: GameState, player: number, card: Card): GameState {
   if (s.phase !== 'playing' || player !== s.turn) return s;
   const hand = s.hands[player];
-  if (!isLegal(card, hand, s.trick, s.trump, s.trumpBroken, s.settings.trumpRule)) return s;
+  if (!isLegal(card, hand, s.trick, s.trump, s.trumpBroken, trumpRuleFor(s.settings))) return s;
 
   const hands = s.hands.slice();
   hands[player] = hand.filter((c) => !sameCard(c, card));
