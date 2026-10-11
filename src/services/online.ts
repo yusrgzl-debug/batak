@@ -267,6 +267,11 @@ export class LocalOnline implements OnlineService {
     return this.setWallet({ ...this.data.wallet, points: this.data.wallet.points + prizeWon });
   }
 
+  /** Demo only (DEMO_TOOLS): top up the local wallet for testing. */
+  addTestPoints(amount: number) {
+    return this.setWallet({ ...this.data.wallet, points: this.data.wallet.points + amount });
+  }
+
   leaveGame() {
     this.data.games++;
     return this.setWallet(leavePenalty(this.data.wallet));

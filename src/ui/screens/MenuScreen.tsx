@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { ECONOMY, Wallet, adsLeft, canClaimDaily } from '../../engine/economy';
 import { User } from '../../services/auth';
+import { DEMO_TOOLS, TEST_POINTS } from '../../services/config';
 import appIcon from '../../assets/app-icon.png';
 import { Avatar } from '../components/Avatar';
 import { pt } from '../format';
@@ -14,10 +15,11 @@ interface Props {
   watchingAd: boolean;
   onClaimDaily: () => void;
   onWatchAd: () => void;
+  onTestPoints: () => void;
   onNavigate: (to: 'rooms' | 'create' | 'leaderboard' | 'friends' | 'practice' | 'premium' | 'settings' | 'rules') => void;
 }
 
-export function MenuScreen({ user, wallet, premium, watchingAd, onClaimDaily, onWatchAd, onNavigate }: Props) {
+export function MenuScreen({ user, wallet, premium, watchingAd, onClaimDaily, onWatchAd, onTestPoints, onNavigate }: Props) {
   const daily = canClaimDaily(wallet);
   const ads = adsLeft(wallet);
   return (
@@ -89,6 +91,12 @@ export function MenuScreen({ user, wallet, premium, watchingAd, onClaimDaily, on
           {ads}/{ECONOMY.AD_REWARDS_PER_DAY}
         </span>
       </button>
+
+      {DEMO_TOOLS && (
+        <button className="test-points" onClick={onTestPoints}>
+          🧪 Test puanı yükle (+{pt(TEST_POINTS)} Pt)
+        </button>
+      )}
 
       {premium ? (
         <span className="premium-tag">♛ Premium</span>

@@ -2002,3 +2002,14 @@ button {
   left: -23px;
   top: 0;
 }
+.test-points {
+  width: 100%;
+  max-width: 440px;
+  padding: 10px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--gold);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px dashed rgba(242, 193, 78, 0.6);
+}

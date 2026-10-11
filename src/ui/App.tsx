@@ -5,6 +5,7 @@ import { Ads, adsActive } from '../services/ads';
 import { Auth, User } from '../services/auth';
 import { LocalOnline, PlayerProfile, Room, roomSettings } from '../services/online';
 import { Premium } from '../services/premium';
+import { TEST_POINTS } from '../services/config';
 import { DEFAULT_PREFS, DEFAULT_STATS, Prefs, Stats, load, save } from './storage';
 import { setSoundEnabled } from './sound';
 import { GameScreen } from './screens/GameScreen';
@@ -146,6 +147,7 @@ export function App() {
           watchingAd={watchingAd}
           onClaimDaily={() => setWallet(online.claimDaily())}
           onWatchAd={watchAd}
+          onTestPoints={() => setWallet(online.addTestPoints(TEST_POINTS))}
           onNavigate={setScreen}
         />
       )}
