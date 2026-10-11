@@ -577,10 +577,13 @@ function BidPanel({ s, onBid }: { s: GameState; onBid: (b: number | 'pass') => v
   const { min, max, canPass } = bidOptions(s);
   const kozMaca = s.settings.mode === 'kozMaca';
   const nums = Array.from({ length: max - min + 1 }, (_, i) => min + i);
+  // balanced rows in order: 9 numbers → 5 + 4, 13 → 7 + 6; the last row is centred
+  const rows = Math.ceil(nums.length / 7);
+  const cols = Math.ceil(nums.length / rows);
   return (
     <motion.div className="panel" {...sheet}>
       <div className="panel-title">{kozMaca ? 'Kaç el alacaksın?' : 'İhale ver'}</div>
-      <div className="bid-grid">
+      <div className="bid-grid" style={{ ['--cols' as string]: cols }}>
         {nums.map((n) => (
           <button key={n} className="bid-btn" onClick={() => onBid(n)}>
             {n}
@@ -615,7 +618,9 @@ function TrumpPanel({ onPick }: { onPick: (s: Suit) => void }) {
       <div className="trump-grid">
         {SUITS.map((suit) => (
           <button key={suit} className={`trump-btn ${isRed(suit) ? 'red' : ''}`} onClick={() => onPick(suit)}>
-            <span className="trump-sym">{SUIT_SYMBOL[suit]}</span>
+            <svg className="trump-sym" viewBox="0 0 100 100" aria-hidden>
+              <path d={SUIT_PATH[suit]} />
+            </svg>
             <span>{SUIT_NAME[suit]}</span>
           </button>
         ))}

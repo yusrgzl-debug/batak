@@ -25,10 +25,10 @@ interface Palette {
 }
 
 const PALETTE: Record<Suit, Palette> = {
-  H: { main: '#e3262f', light: '#f48a98', dark: '#8f1b2a', pip: '#e3262f' },
-  D: { main: '#ef4a2c', light: '#f9a27c', dark: '#9a2a15', pip: '#e3262f' },
-  S: { main: '#2b3160', light: '#7d8bd0', dark: '#151935', pip: '#1d2034' },
-  C: { main: '#24493f', light: '#6fb39c', dark: '#11251f', pip: '#1d2034' },
+  H: { main: '#e3262f', light: '#f48a98', dark: '#8f1b2a', pip: '#e0242c' },
+  D: { main: '#ef4a2c', light: '#f9a27c', dark: '#9a2a15', pip: '#e0242c' },
+  S: { main: '#2b3160', light: '#7d8bd0', dark: '#151935', pip: '#141414' },
+  C: { main: '#24493f', light: '#6fb39c', dark: '#11251f', pip: '#141414' },
 };
 
 const INK = '#1d2034';
@@ -36,7 +36,7 @@ const SKIN = '#f7d2bd';
 const GOLD = '#f0b93a';
 const RED = '#c8262e';
 const BLUE = '#2a4b9b';
-const PAPER = '#fdfcf8';
+const PAPER = '#fbfaf7';
 const LINE = { stroke: INK, strokeWidth: 1.4, strokeLinejoin: 'round' as const };
 
 export function SuitShape({ suit, x, y, size, color, flip }: { suit: Suit; x: number; y: number; size: number; color?: string; flip?: boolean }) {
@@ -222,18 +222,18 @@ function Index({ card }: { card: Card }) {
   return (
     <g>
       <text
-        x="36"
-        y={ten ? 80 : 86}
+        x="34"
+        y="78"
         textAnchor="middle"
         fontFamily="'Roboto Condensed', 'Arial Narrow', Arial, sans-serif"
-        fontWeight="700"
-        fontSize={ten ? 72 : 90}
-        letterSpacing={ten ? -6 : 0}
+        fontWeight="400"
+        fontSize={ten ? 84 : 92}
+        letterSpacing={ten ? -9 : -1}
         fill={color}
       >
         {label}
       </text>
-      <SuitShape suit={card.suit} x={36} y={128} size={50} />
+      <SuitShape suit={card.suit} x={34} y={110} size={42} />
     </g>
   );
 }
@@ -242,7 +242,7 @@ export function CardFace({ card }: { card: Card }) {
   const court = card.rank >= 11 && card.rank <= 13;
   return (
     <svg className="card-face-svg" viewBox={`0 0 ${W} ${H}`} width="100%" height="100%" aria-hidden>
-      <rect x="0" y="0" width={W} height={H} rx="12" fill={PAPER} />
+      {/* paper colour comes from the .card background (white with a soft sheen) */}
       {court ? <Court card={card} /> : <Pips card={card} />}
       <Index card={card} />
     </svg>

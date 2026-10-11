@@ -43,14 +43,15 @@ export function Hand({ cards, isActive, dimInactive, selected, fresh, onTap }: P
   // Big cards (about a quarter of the screen wide) that overlap heavily: the visible strip of each
   // card (at least MIN_STRIP of its width) always shows the full jumbo index.
   const MIN_STRIP = 0.37;
-  const MAX_TILT = 4; // degrees at the ends of a row
+  const MAX_TILT = 2; // degrees at the ends of a row: a light fan, cards stay upright
   // room for the outer cards' rotation (they pivot around a point below the card)
   const spill = (w: number) => w * 1.4 * 1.2 * Math.sin((MAX_TILT * Math.PI) / 180);
   let cardW = Math.min(width * 0.26, 150, (width - 20) / (1 + (longest - 1) * MIN_STRIP));
   cardW = Math.min(cardW, (width - 20 - 2 * spill(cardW)) / (1 + (longest - 1) * MIN_STRIP));
   const avail = width - 20 - 2 * spill(cardW);
   const cardH = cardW * 1.4;
-  const rowGap = cardH * 0.48;
+  // the top row shows rank + suit (top ~48% of a card) above the bottom row
+  const rowGap = cardH * 0.52;
   const step = longest > 1 ? Math.min(cardW * 0.62, (avail - cardW) / (longest - 1)) : 0;
   const height = cardH + (twoRows ? rowGap : 0) + 34;
 
@@ -64,7 +65,7 @@ export function Hand({ cards, isActive, dimInactive, selected, fresh, onTap }: P
             // a gentle fan, as if held in the hand: slight tilt and arc, proportional to row length
             const off = mid ? (i - mid) / mid : 0;
             const tilt = off * Math.min(MAX_TILT, row.length * 0.5);
-            const arc = off * off * cardH * 0.06;
+            const arc = off * off * cardH * 0.03;
             const id = cardId(c);
             const active = isActive(c);
             const sel = selected?.has(id) ?? false;

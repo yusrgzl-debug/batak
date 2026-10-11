@@ -153,11 +153,11 @@ button {
   position: relative;
   width: 100%;
   aspect-ratio: 5 / 7;
-  border-radius: 6% / 4.3%;
-  background: linear-gradient(160deg, #fffefa 0%, #f8f3e6 70%, #efe6cf 100%);
+  border-radius: 8% / 5.7%;
+  background: linear-gradient(100deg, #ffffff 0%, #fafafa 55%, #e9e8e4 100%);
   box-shadow:
-    0 0 0 0.5px rgba(0, 0, 0, 0.3),
-    0 3px 8px rgba(0, 0, 0, 0.35);
+    0 0 0 0.5px rgba(0, 0, 0, 0.35),
+    -2px 2px 6px rgba(0, 0, 0, 0.28);
   container-type: inline-size;
   overflow: hidden;
   transition: filter 0.2s, box-shadow 0.2s;
@@ -500,9 +500,14 @@ button {
   padding: 10px;
 }
 .bid-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
-  gap: 6px;
+  --gap: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--gap);
+}
+.bid-grid .bid-btn {
+  flex: 0 0 calc((100% - (var(--cols) - 1) * var(--gap)) / var(--cols));
 }
 .bid-btn {
   height: 42px;
@@ -519,8 +524,15 @@ button {
 }
 .trump-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 10px;
+}
+.trump-grid .trump-btn {
+  flex-direction: row;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 0;
+  font-size: 17px;
 }
 .trump-btn {
   display: flex;
@@ -539,6 +551,9 @@ button {
   color: var(--red);
 }
 .trump-sym {
+  width: 30px;
+  height: 30px;
+  fill: currentColor;
   font-size: 38px;
   line-height: 1;
 }
