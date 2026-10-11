@@ -2,6 +2,7 @@ import { Mode, Settings, TrumpRule, playerCount } from '../engine/game';
 import {
   ECONOMY,
   Wallet,
+  prizeError,
   adsLeft,
   canAfford,
   claimDaily,
@@ -213,6 +214,8 @@ export class LocalOnline implements OnlineService {
   private rooms = new Map<string, Room>();
 
   async createRoom(opts: RoomOptions): Promise<Room> {
+    const bad = prizeError(opts.prize);
+    if (bad) throw new Error(bad);
     const entry = entryFee(opts.mode, opts.prize);
     if (!canAfford(this.data.wallet, entry)) throw new Error(`Bu masa için en az ${entry} Pt gerekiyor`);
     await delay(250);

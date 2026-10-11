@@ -17,6 +17,7 @@
     "@capacitor-community/admob": "^6.2.0",
     "@capacitor-firebase/authentication": "^6.3.1",
     "@capacitor/core": "^6.2.2",
+    "@capacitor/haptics": "^6.0.3",
     "@capacitor/preferences": "^6.0.4",
     "@revenuecat/purchases-capacitor": "^9.2.2",
     "firebase": "^10.14.1",

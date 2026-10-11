@@ -1831,3 +1831,115 @@ button {
 .opponent--right .badge-info {
   margin-top: 5px;
 }
+.prize-custom-btn {
+  grid-column: 1 / -1;
+}
+.prize-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+.prize-input span {
+  font-weight: 700;
+  white-space: nowrap;
+}
+.prize-input input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(242, 193, 78, 0.6);
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--gold);
+  font: inherit;
+  font-size: 18px;
+  font-weight: 800;
+  text-align: right;
+}
+
+/* ---------- desktop phone frame (DeviceFrame) ---------- */
+.device-stage {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 16px;
+  background: radial-gradient(ellipse at 50% 30%, #1c2430, #07090d 70%);
+  overflow: auto;
+}
+.device {
+  position: relative;
+  flex-shrink: 0;
+  width: 414px;
+  height: min(868px, calc(100vh - 70px));
+  padding: 12px;
+  border-radius: 60px;
+  background: linear-gradient(145deg, #3a3f47, #15181d 40%, #2b3038);
+  box-shadow:
+    0 0 0 2px #50565f,
+    0 30px 80px rgba(0, 0, 0, 0.7),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+.device-screen {
+  --safe-top: 50px;
+  --safe-bottom: 26px;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 48px;
+  background: var(--felt-3);
+  transform: translateZ(0); /* contain position: fixed children */
+}
+.device-screen > .app {
+  max-width: none;
+}
+.device-status {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 500;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 34px 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  pointer-events: none;
+  background: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0));
+}
+.device-island {
+  width: 122px;
+  height: 34px;
+  border-radius: 20px;
+  background: #000;
+}
+.device-icons {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.device-home {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  z-index: 500;
+  width: 134px;
+  height: 5px;
+  border-radius: 3px;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.85);
+  pointer-events: none;
+}
+.device-hint {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+}

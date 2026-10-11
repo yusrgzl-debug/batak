@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Card, cardId } from '../../engine/cards';
 import { arrangeHand } from '../handLayout';
 import { PlayingCard } from './PlayingCard';
@@ -17,13 +17,16 @@ interface Props {
   onTap: (c: Card) => void;
 }
 
-function useWidth() {
+/** Width of the element (not the window), so the hand also fits inside the desktop phone frame. */
+function useWidth(ref: React.RefObject<HTMLElement>) {
   const [w, setW] = useState(() => window.innerWidth);
   useEffect(() => {
-    const on = () => setW(window.innerWidth);
-    window.addEventListener('resize', on);
-    return () => window.removeEventListener('resize', on);
-  }, []);
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => setW(e.contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ref]);
   return w;
 }
 
@@ -32,7 +35,8 @@ function useWidth() {
  * large enough to tap; the bottom row overlaps the lower half of the top row.
  */
 export function Hand({ cards, isActive, dimInactive, selected, fresh, onTap }: Props) {
-  const width = Math.min(useWidth(), 760);
+  const ref = useRef<HTMLDivElement>(null);
+  const width = Math.min(useWidth(ref), 760);
   const rows = arrangeHand(cards);
   const twoRows = rows.length === 2;
   const cardW = width < 420 ? (twoRows ? 70 : 64) : 88;
@@ -43,7 +47,7 @@ export function Hand({ cards, isActive, dimInactive, selected, fresh, onTap }: P
   const height = cardH + (twoRows ? rowGap : 0) + 26;
 
   return (
-    <div className="hand" style={{ height }}>
+    <div className="hand" ref={ref} style={{ height }}>
       <AnimatePresence>
         {rows.flatMap((row, r) => {
           const total = cardW + step * (row.length - 1);

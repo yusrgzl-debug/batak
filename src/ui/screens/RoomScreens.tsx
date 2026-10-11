@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import { ECONOMY, Wallet, entryFee, payoutShares } from '../../engine/economy';
+import { ECONOMY, Wallet, entryFee, payoutShares, prizeError } from '../../engine/economy';
 import { MODE_INFO, Mode, Settings } from '../../engine/game';
 import { LocalOnline, Room, RoomOptions } from '../../services/online';
 import { Avatar } from '../components/Avatar';
@@ -98,14 +98,19 @@ export function CreateRoomScreen({
   });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const entry = entryFee(opts.mode, opts.prize);
-  const short = wallet.points < entry;
+  // Özel ödül: typed by the player, same entry/payout ratios as the preset tables
+  const [custom, setCustom] = useState<string | null>(null);
+  const customValue = custom === null ? null : Number(custom.replace(/\D/g, ''));
+  const prize = customValue ?? opts.prize;
+  const invalid = prizeError(prize);
+  const entry = entryFee(opts.mode, prize);
+  const short = !invalid && wallet.points < entry;
 
   const create = async () => {
     setBusy(true);
     setError(null);
     try {
-      onCreated(await online.createRoom(opts));
+      onCreated(await online.createRoom({ ...opts, prize }));
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -122,15 +127,38 @@ export function CreateRoomScreen({
           <span className="room-label">Ödül</span>
           <div className="prize-grid">
             {ECONOMY.PRIZES.map((p) => (
-              <button key={p} className={`seg-btn ${opts.prize === p ? 'seg-btn--on' : ''}`} onClick={() => setOpts({ ...opts, prize: p })}>
+              <button
+                key={p}
+                className={`seg-btn ${custom === null && opts.prize === p ? 'seg-btn--on' : ''}`}
+                onClick={() => {
+                  setCustom(null);
+                  setOpts({ ...opts, prize: p });
+                }}
+              >
                 {pt(p)}
               </button>
             ))}
+            <button className={`seg-btn prize-custom-btn ${custom !== null ? 'seg-btn--on' : ''}`} onClick={() => setCustom(custom ?? String(opts.prize))}>
+              ✏️ Özel ödül
+            </button>
           </div>
-          <PrizeTable mode={opts.mode} prize={opts.prize} />
+          {custom !== null && (
+            <label className="prize-input">
+              <span>Ödül (Pt)</span>
+              <input
+                id="custom-prize"
+                inputMode="numeric"
+                autoFocus
+                value={customValue ? pt(customValue) : ''}
+                placeholder={`${pt(ECONOMY.CUSTOM_PRIZE_MIN)} – ${pt(ECONOMY.CUSTOM_PRIZE_MAX)}`}
+                onChange={(e) => setCustom(e.target.value)}
+              />
+            </label>
+          )}
+          {invalid ? <div className="toast">{invalid}</div> : <PrizeTable mode={opts.mode} prize={prize} />}
         </div>
         {error && <div className="toast">{error}</div>}
-        <button className="btn btn--blue btn--xl wide" disabled={short || busy} onClick={create}>
+        <button className="btn btn--blue btn--xl wide" disabled={short || busy || !!invalid} onClick={create}>
           {short ? `Yetersiz puan (${pt(entry)} Pt gerekli)` : 'Odayı Aç'}
         </button>
       </section>

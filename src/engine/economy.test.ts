@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ECONOMY, adsLeft, canClaimDaily, claimDaily, entryFee, leavePenalty, newWallet, payEntry, payouts, rewardAd } from './economy';
+import { ECONOMY, prizeError, adsLeft, canClaimDaily, claimDaily, entryFee, leavePenalty, newWallet, payEntry, payouts, rewardAd } from './economy';
 
 describe('economy', () => {
   it('daily bonus once per day', () => {
@@ -39,6 +39,16 @@ describe('economy', () => {
         const paid = payouts(mode, prize, [...Array(n).keys()]).reduce((a, b) => a + b, 0);
         expect(entryFee(mode, prize) * n).toBeGreaterThanOrEqual(paid);
       }
+  });
+
+  it('custom prizes keep the same ratios', () => {
+    expect(prizeError(7300)).toBeNull();
+    expect(prizeError(400)).not.toBeNull();
+    expect(prizeError(7350)).not.toBeNull();
+    expect(prizeError(2_000_000)).not.toBeNull();
+    // twice the prize → twice the entry (± rounding)
+    expect(Math.abs(entryFee('ihaleli', 14600) - 2 * entryFee('ihaleli', 7300))).toBeLessThanOrEqual(1);
+    expect(payouts('ihaleli', 7300, [0, 1, 2, 3])).toEqual([7300, 913, 456, 0]);
   });
 
   it('entry and leave penalty', () => {

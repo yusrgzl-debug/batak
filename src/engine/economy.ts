@@ -14,7 +14,19 @@ export const ECONOMY = {
   /** share of the entry fees kept by the house */
   HOUSE_CUT: 0.05,
   PRIZES: [1000, 2600, 5000, 10000, 25000, 50000],
+  /** Özel oda: any prize in this range, in steps of PRIZE_STEP */
+  CUSTOM_PRIZE_MIN: 500,
+  CUSTOM_PRIZE_MAX: 1_000_000,
+  PRIZE_STEP: 100,
 } as const;
+
+/** Null when the prize is allowed, otherwise the reason shown to the player. */
+export function prizeError(prize: number): string | null {
+  if (!Number.isFinite(prize) || prize < ECONOMY.CUSTOM_PRIZE_MIN) return `Ödül en az ${ECONOMY.CUSTOM_PRIZE_MIN} Pt olmalı`;
+  if (prize > ECONOMY.CUSTOM_PRIZE_MAX) return `Ödül en fazla ${ECONOMY.CUSTOM_PRIZE_MAX.toLocaleString('tr-TR')} Pt olabilir`;
+  if (prize % ECONOMY.PRIZE_STEP !== 0) return `Ödül ${ECONOMY.PRIZE_STEP}’ün katı olmalı`;
+  return null;
+}
 
 export interface Wallet {
   points: number;

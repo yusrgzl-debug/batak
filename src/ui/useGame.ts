@@ -12,6 +12,7 @@ import {
   playCard,
 } from '../engine/game';
 import { bestTrump, botBid, botBury, botPlay } from '../engine/ai';
+import { tap } from './haptics';
 import { sfx } from './sound';
 
 export const HUMAN = 0;
@@ -23,6 +24,11 @@ export function useGame(settings: Settings, speed: keyof typeof SPEED) {
   const k = SPEED[speed];
 
   // Drive bots and trick collection with small delays so play is readable.
+  // the riffle of a fresh deal at the start of every hand
+  useEffect(() => {
+    sfx.deal();
+  }, [state.round]);
+
   useEffect(() => {
     const s = state;
     let timer: number | undefined;
@@ -53,6 +59,7 @@ export function useGame(settings: Settings, speed: keyof typeof SPEED) {
   const trump = useCallback((suit: Suit) => setState((s) => chooseTrump(s, suit)), []);
   const play = useCallback((c: Card) => {
     sfx.card();
+    tap();
     setState((s) => playCard(s, HUMAN, c));
   }, []);
   const advance = useCallback(() => setState((s) => nextRound(s)), []);
