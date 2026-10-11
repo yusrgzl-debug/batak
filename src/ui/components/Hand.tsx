@@ -60,16 +60,18 @@ export function Hand({ cards, isActive, dimInactive, selected, fresh, onTap }: P
               <motion.div
                 key={id}
                 className="hand-slot"
-                initial={{ y: 160, opacity: 0 }}
+                // kitty cards fly in from the middle of the table, the rest are dealt from below
+                initial={isFresh ? { x: -cardW / 2, y: -260, opacity: 0, scale: 0.7 } : { y: 160, opacity: 0 }}
                 animate={{
                   x: -total / 2 + i * step,
-                  y: r * rowGap + (sel || isFresh ? -22 : active && dimInactive ? -8 : 0),
-                  scale: isFresh ? 1.06 : 1,
+                  y: r * rowGap + (sel || isFresh ? -16 : active && dimInactive ? -8 : 0),
                   opacity: 1,
+                  scale: 1,
                 }}
                 exit={{ y: -160, opacity: 0, transition: { duration: 0.2 } }}
-                transition={{ type: 'spring', stiffness: 320, damping: 30 }}
-                style={{ width: cardW, zIndex: r * 100 + i + (isFresh ? 50 : 0) }}
+                // re-sorting slides cards into place without bouncing across rows
+                transition={{ type: 'tween', ease: [0.22, 1, 0.36, 1], duration: isFresh ? 0.55 : 0.35 }}
+                style={{ width: cardW, zIndex: r * 100 + i }}
               >
                 <PlayingCard
                   card={c}
@@ -77,7 +79,7 @@ export function Hand({ cards, isActive, dimInactive, selected, fresh, onTap }: P
                   glow={dimInactive && active}
                   selected={sel}
                   fresh={isFresh}
-                  hiddenRight={i < row.length - 1 && !isFresh ? Math.max(0, cardW - step) : 0}
+                  hiddenRight={i < row.length - 1 ? Math.max(0, cardW - step) : 0}
                   dimmed={dimInactive && !active}
                   onClick={() => onTap(c)}
                 />

@@ -13,7 +13,7 @@ import { Hand } from '../components/Hand';
 import { BUBBLE_MS, ChatMsg, botOnBidFailed, botOnBidMade, botOnGameEnd, botReplyTo } from '../chat';
 import { PlayingCard } from '../components/PlayingCard';
 import { SUIT_PATH } from '../components/cardArt';
-import { HUMAN, useGame } from '../useGame';
+import { HUMAN, TURN_MS, turnKey, useGame } from '../useGame';
 import { Prefs } from '../storage';
 import { sfx } from '../sound';
 
@@ -60,7 +60,7 @@ interface Props {
 const BOT: PlayerProfile = { id: 'bot', name: 'Bot', points: 0, games: 0, wins: 0, premium: false, bot: true };
 
 export function GameScreen({ settings, prefs, playerName, photoUrl, premium, table, online, onExit, onGameEnd }: Props) {
-  const { state: s, bid, bury, trump, play, advance, restart } = useGame(settings, prefs.speed);
+  const { state: s, bid, bury, trump, play, advance, restart, timedOut } = useGame(settings, prefs.speed);
   const [showScores, setShowScores] = useState(false);
   const [confirmExit, setConfirmExit] = useState(false);
   const [toBury, setToBury] = useState<Set<string>>(new Set());
@@ -149,6 +149,10 @@ export function GameScreen({ settings, prefs, playerName, photoUrl, premium, tab
   useEffect(() => {
     if (s.phase !== 'bury') setToBury(new Set());
   }, [s.phase]);
+
+  useEffect(() => {
+    if (timedOut) setToast('Süre doldu, senin yerine en iyi hamle yapıldı');
+  }, [timedOut]);
 
   // El Sonu Yaz Boz kapalıysa el sonu tablosu gösterilmeden sonraki ele geçilir.
   useEffect(() => {
@@ -299,6 +303,7 @@ export function GameScreen({ settings, prefs, playerName, photoUrl, premium, tab
               );
             })}
           </AnimatePresence>
+          <Kitty s={s} />
           {s.phase === 'bidding' && <BiddingStatus s={s} names={names} />}
           {s.phase === 'trump' && s.turn !== HUMAN && (
             <div className="center-msg">{names[s.turn]} kozu seçiyor…</div>
@@ -337,7 +342,7 @@ export function GameScreen({ settings, prefs, playerName, photoUrl, premium, tab
       <Hand
         cards={s.hands[HUMAN]}
         isActive={(c) => burying || (myTurnToPlay && (!prefs.cardHelper || isLegal(c)))}
-        dimInactive={prefs.cardHelper && myTurnToPlay}
+        dimInactive={prefs.cardHelper && myTurnToPlay && !fresh}
         selected={burying ? toBury : undefined}
         fresh={fresh}
         onTap={onTap}
@@ -426,6 +431,7 @@ function PlayerBadge({ p, s, name, esli, bubble, photoUrl, premium, onTap }: Bad
       role={onTap ? 'button' : undefined}
     >
       <Avatar name={name} photoUrl={photoUrl} premium={premium} className={`avatar--${p} ${esli ? `team-${teamOf(p)}` : ''}`}>
+        {active && <TurnRing key={turnKey(s) ?? ''} />}
         {isBidder && <span className="bidder-tag">İHALE</span>}
       </Avatar>
       <div className="badge-info">
@@ -469,19 +475,48 @@ function PlayerBadge({ p, s, name, esli, bubble, photoUrl, premium, onTap }: Bad
   );
 }
 
+/** Opponents are shown by their badge only; their face-down hands are left off to keep the table calm. */
 function Opponent({ p, s, name, esli, bubble, photoUrl, premium, onTap }: BadgeProps) {
-  const n = s.hands[p].length;
-  const seat = seatOf(p, s.n);
-  const vertical = seat === 'left' || seat === 'right';
   return (
-    <div className={`opponent opponent--${seat}`}>
-      <div className={`opp-hand ${vertical ? 'opp-hand--v' : ''}`}>
-        {Array.from({ length: n }, (_, i) => (
-          <PlayingCard key={i} faceDown small style={{ zIndex: i }} />
-        ))}
-      </div>
+    <div className={`opponent opponent--${seatOf(p, s.n)}`}>
       <PlayerBadge p={p} s={s} name={name} esli={esli} bubble={bubble} photoUrl={photoUrl} premium={premium} onTap={onTap} />
     </div>
+  );
+}
+
+/** Countdown ring around the avatar of the player whose turn it is (TURN_MS long). */
+function TurnRing() {
+  return (
+    <svg className="turn-ring" viewBox="0 0 100 100" aria-hidden style={{ ['--turn-ms' as string]: `${TURN_MS}ms` }}>
+      <circle cx="50" cy="50" r="46" className="turn-ring-track" />
+      <circle cx="50" cy="50" r="46" className="turn-ring-bar" pathLength={100} />
+    </svg>
+  );
+}
+
+/** Gömmeli: the 4 face-down kitty cards in the middle of the table until the bidder takes them. */
+function Kitty({ s }: { s: GameState }) {
+  const show = s.settings.mode === 'gommeli' && ['bidding', 'trump', 'bury'].includes(s.phase);
+  const to = s.highBid ? FROM[seatOf(s.highBid.player, s.n)] : { x: 0, y: 0 };
+  return (
+    <AnimatePresence>
+      {show && (
+        <motion.div
+          key={`kitty-${s.round}`}
+          className="kitty"
+          initial={{ opacity: 0, y: -20, scale: 0.8 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, x: to.x * 0.8, y: to.y * 0.8, scale: 0.6, transition: { duration: 0.45, ease: 'easeIn' } }}
+        >
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="kitty-card" style={{ transform: `translateX(${(i - 1.5) * 26}px) rotate(${(i - 1.5) * 6}deg)` }}>
+              <PlayingCard faceDown />
+            </div>
+          ))}
+          <span className="kitty-label">Yerdeki 4 kart</span>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 

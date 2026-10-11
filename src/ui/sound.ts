@@ -1,3 +1,6 @@
+import cardUrl from '../assets/sounds/card.mp3?inline';
+import shuffleUrl from '../assets/sounds/shuffle.mp3?inline';
+
 let ctx: AudioContext | null = null;
 let noise: AudioBuffer | null = null;
 let enabled = true;
@@ -17,10 +20,50 @@ function audio(): AudioContext | null {
       const d = noise.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     }
+    loadSamples(ctx);
     return ctx;
   } catch {
     return null;
   }
+}
+
+/* ---------- recorded samples (card throw, deck shuffle) ---------- */
+
+const samples: Record<'card' | 'shuffle', AudioBuffer | null> = { card: null, shuffle: null };
+let loading = false;
+
+/** The mp3s are inlined as base64 data URLs; decode them without fetch() (blocked by some CSPs). */
+function decodeDataUrl(url: string): ArrayBuffer {
+  const b64 = url.slice(url.indexOf(',') + 1);
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out.buffer;
+}
+
+function loadSamples(c: AudioContext) {
+  if (loading) return;
+  loading = true;
+  const load = (key: keyof typeof samples, url: string) =>
+    c
+      .decodeAudioData(decodeDataUrl(url))
+      .then((b) => {
+        samples[key] = b;
+      })
+      .catch(() => undefined);
+  void load('card', cardUrl);
+  void load('shuffle', shuffleUrl);
+}
+
+/** Play a sample with a little pitch/volume variation so repeats don't sound mechanical. */
+function playSample(c: AudioContext, b: AudioBuffer, at = 0, gain = 1, vary = 0.08) {
+  const src = c.createBufferSource();
+  src.buffer = b;
+  src.playbackRate.value = 1 + (Math.random() * 2 - 1) * vary;
+  const g = c.createGain();
+  g.gain.value = gain * (0.85 + Math.random() * 0.15);
+  src.connect(g).connect(c.destination);
+  src.start(c.currentTime + at);
 }
 
 interface Burst {
@@ -86,7 +129,9 @@ function cardThrow(c: AudioContext, at = 0, loud = 1) {
 export const sfx = {
   card: () => {
     const c = audio();
-    if (c) cardThrow(c);
+    if (!c) return;
+    if (samples.card) playSample(c, samples.card, 0, 0.9);
+    else cardThrow(c); // synthesized fallback until the sample has decoded
   },
   /** Cards being swept off the table to the trick winner. */
   trick: () => {
@@ -95,11 +140,16 @@ export const sfx = {
     burst(c, { dur: 0.28, gain: 0.16, filter: 'bandpass', freq: 500, freqTo: 2600, q: 0.8, attack: 0.03 });
     burst(c, { at: 0.22, dur: 0.05, gain: 0.25, filter: 'bandpass', freq: 800, q: 1 });
   },
-  /** A quick riffle of cards being dealt. */
+  /** Shuffle, then a quick run of cards being dealt. */
   deal: () => {
     const c = audio();
     if (!c) return;
-    for (let i = 0; i < 10; i++) cardThrow(c, i * 0.055, 0.45);
+    if (samples.shuffle) {
+      playSample(c, samples.shuffle, 0, 0.9, 0.03);
+      if (samples.card) for (let i = 0; i < 4; i++) playSample(c, samples.card, 0.62 + i * 0.12, 0.45, 0.12);
+    } else {
+      for (let i = 0; i < 10; i++) cardThrow(c, i * 0.055, 0.45);
+    }
   },
   win: () => {
     tone(660, 0.18, 'sine', 0.08);
@@ -107,3 +157,8 @@ export const sfx = {
   },
   fail: () => tone(180, 0.3, 'sawtooth', 0.04),
 };
+
+// Browsers only start audio after a user gesture: unlock and decode the samples on the first tap.
+if (typeof window !== 'undefined') {
+  window.addEventListener('pointerdown', () => void audio(), { once: true, capture: true });
+}

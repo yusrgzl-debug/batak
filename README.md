@@ -11,6 +11,8 @@ Tek kod tabanı: web (geliştirme/test) + iOS + Android (Capacitor).
 - **Kart tasarımı:** klasik düzen (sol üst / sağ alt indeks, klasik pip dizilimi, çerçeveli çift başlı Papaz-Kız-Vale, kırmızı desenli arka yüz), sade ve oyunun tarzına uygun çizim; hepsi kodla çizilen SVG (`src/ui/components/cardArt.tsx`)
 - **Oda Bul / Oda Kur:** puanlı masalar; giriş bedeli ve ödül masaya göre, yüksek ödüllü masalara yüksek puanlı oyuncular girer
 - **Puan ekonomisi:** günlük giriş ödülü, ödüllü reklamla günde 2 kez puan, masadan çıkana 500 Pt ceza ve yerine bot
+- **Sıra süresi:** her hamle için 10 saniye; avatarın etrafında dönen halka, süre dolunca en iyi hamle otomatik yapılır
+- **Sesler:** gerçek kart atma ve deste karıştırma kayıtları (`src/assets/sounds`, oxidvideos / Pixabay)
 - **Lider tablosu ve arkadaşlar:** oyunda bir oyuncuya dokununca profil kartı ve Arkadaş Ekle
 - **Takip kolaylığı:** ihaleyi alanın rozetinde ve üst çubukta aldığı/ihale sayacı (ör. 3/7), masanın ortasında koz simgesi
 - **Oda içi mesajlaşma:** hızlı sohbet mesajları, emojiler ve serbest yazı; botlar da cevap verir

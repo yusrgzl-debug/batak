@@ -1943,3 +1943,72 @@ button {
   color: rgba(255, 255, 255, 0.6);
   text-align: center;
 }
+
+/* ---------- turn timer ring ---------- */
+.turn-ring {
+  position: absolute;
+  inset: -7px;
+  width: calc(100% + 14px);
+  height: calc(100% + 14px);
+  transform: rotate(-90deg);
+  pointer-events: none;
+  z-index: 1;
+}
+.turn-ring circle {
+  fill: none;
+  stroke-width: 7;
+}
+.turn-ring-track {
+  stroke: rgba(0, 0, 0, 0.35);
+}
+.turn-ring-bar {
+  stroke: #4fd69c;
+  stroke-linecap: round;
+  stroke-dasharray: 100 100;
+  stroke-dashoffset: 0;
+  animation:
+    turn-countdown var(--turn-ms) linear forwards,
+    turn-color var(--turn-ms) linear forwards;
+}
+@keyframes turn-countdown {
+  to {
+    stroke-dashoffset: 100;
+  }
+}
+@keyframes turn-color {
+  0%,
+  55% {
+    stroke: #4fd69c;
+  }
+  75% {
+    stroke: #f2c14e;
+  }
+  100% {
+    stroke: #ff5a5a;
+  }
+}
+
+/* ---------- Gömmeli kitty in the middle ---------- */
+.kitty {
+  position: absolute;
+  left: 0;
+  top: -118px;
+  width: 0;
+  height: 0;
+}
+.kitty-card {
+  position: absolute;
+  width: 46px;
+  left: -23px;
+  top: 0;
+}
+.kitty-label {
+  position: absolute;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+}
