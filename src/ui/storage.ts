@@ -16,13 +16,19 @@ export function save<T>(key: string, value: T) {
   }
 }
 
+export type Theme = 'yesil' | 'mavi' | 'bordo';
+
 export interface Prefs {
   sound: boolean;
   speed: 'slow' | 'normal' | 'fast';
-  playerName: string;
+  /** Kart Gösterici: highlight the cards that may be played */
+  cardHelper: boolean;
+  /** El Sonu Yaz Boz: show the score sheet after every hand */
+  roundSummary: boolean;
+  theme: Theme;
 }
 
-export const DEFAULT_PREFS: Prefs = { sound: true, speed: 'normal', playerName: 'Sen' };
+export const DEFAULT_PREFS: Prefs = { sound: true, speed: 'normal', cardHelper: true, roundSummary: true, theme: 'yesil' };
 
 export interface Stats {
   played: number;

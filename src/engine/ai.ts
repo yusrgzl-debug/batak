@@ -1,5 +1,5 @@
 import { Card, Suit, SUITS } from './cards';
-import { GameState, bidOptions, partnerOf, PLAYERS } from './game';
+import { GameState, KITTY, bidOptions, partnerOf } from './game';
 import { beats, currentWinner, legalMoves } from './rules';
 
 const bySuit = (hand: Card[], s: Suit) => hand.filter((c) => c.suit === s);
@@ -44,6 +44,7 @@ export function botBid(s: GameState, p: number): number | 'pass' {
     return Math.max(1, Math.min(13, Math.round(estimateTricks(hand, 'S'))));
   }
   let est = estimateTricks(hand, bestTrump(hand));
+  if (s.settings.mode === 'gommeli') est += 1; // the 4 kitty cards usually help the bidder
   if (s.settings.mode === 'esli') {
     est += 2.2; // partner usually contributes some tricks
     const partnerBid = s.bids[partnerOf(p)];
@@ -59,7 +60,8 @@ export function botBid(s: GameState, p: number): number | 'pass' {
 
 /** A card is a "master" if no unseen card of its suit outranks it. */
 function isMaster(card: Card, s: GameState, p: number): boolean {
-  const seen = new Set([...s.played, ...s.trick.map((t) => t.card), ...s.hands[p]].map((c) => `${c.suit}${c.rank}`));
+  const mine = s.highBid?.player === p ? s.buried : [];
+  const seen = new Set([...s.played, ...s.trick.map((t) => t.card), ...s.hands[p], ...mine].map((c) => `${c.suit}${c.rank}`));
   for (let r = card.rank + 1; r <= 14; r++) if (!seen.has(`${card.suit}${r}`)) return false;
   return true;
 }
@@ -69,7 +71,7 @@ const highest = (cards: Card[]) => cards.reduce((a, b) => (b.rank > a.rank ? b :
 
 export function botPlay(s: GameState, p: number): Card {
   const hand = s.hands[p];
-  const legal = legalMoves(hand, s.trick, s.trump, s.trumpBroken);
+  const legal = legalMoves(hand, s.trick, s.trump, s.trumpBroken, s.settings.trumpRule);
   if (legal.length === 1) return legal[0];
   const trump = s.trump;
   const esli = s.settings.mode === 'esli';
@@ -95,7 +97,7 @@ export function botPlay(s: GameState, p: number): Card {
 
   const lead = s.trick[0].card.suit;
   const win = currentWinner(s.trick, trump)!;
-  const lastToPlay = s.trick.length === PLAYERS - 1;
+  const lastToPlay = s.trick.length === s.n - 1;
   const winners = legal.filter((c) => beats(c, win.card, lead, trump));
 
   if (esli && win.player === partnerOf(p)) {
@@ -120,4 +122,23 @@ function dumpCard(legal: Card[], trump: Suit | null): Card {
   const side = legal.filter((c) => c.suit !== trump);
   const pool = side.length ? side : legal;
   return pool.reduce((a, b) => (b.rank < a.rank ? b : a));
+}
+
+/**
+ * Gömmeli: pick 4 cards to bury from the 20-card hand. Keeps trump and aces, prefers
+ * emptying short side suits (so we can trump them later), then the lowest cards.
+ */
+export function botBury(s: GameState, p: number): Card[] {
+  const hand = s.hands[p];
+  const trump = bestTrump(hand);
+  const len = (suit: Suit) => bySuit(hand, suit).length;
+  const candidates = hand
+    .filter((c) => c.suit !== trump && c.rank !== 14)
+    .sort((a, b) => len(a.suit) - len(b.suit) || a.rank - b.rank);
+  const pick = candidates.slice(0, KITTY);
+  if (pick.length < KITTY) {
+    const rest = hand.filter((c) => !pick.includes(c)).sort((a, b) => a.rank - b.rank);
+    pick.push(...rest.slice(0, KITTY - pick.length));
+  }
+  return pick;
 }

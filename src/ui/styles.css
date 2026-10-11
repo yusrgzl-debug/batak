@@ -554,7 +554,7 @@ button {
   position: absolute;
   left: 10px;
   right: 10px;
-  bottom: 4px;
+  bottom: 22px;
   z-index: 40;
   padding: 12px;
   border-radius: 20px;
@@ -1024,4 +1024,288 @@ button {
   .card--small {
     width: 44px;
   }
+}
+
+/* ---------- table themes (Ayarlar › Arka Plan) ---------- */
+.theme-mavi {
+  --felt-1: #1f5f8a;
+  --felt-2: #0f3a5a;
+  --felt-3: #061b2e;
+}
+.theme-mavi .table-felt {
+  background: radial-gradient(ellipse at 50% 40%, #2f7fb3 0%, var(--felt-1) 35%, var(--felt-2) 100%);
+}
+.theme-bordo {
+  --felt-1: #8a2638;
+  --felt-2: #561421;
+  --felt-3: #2a0910;
+}
+.theme-bordo .table-felt {
+  background: radial-gradient(ellipse at 50% 40%, #a83448 0%, var(--felt-1) 35%, var(--felt-2) 100%);
+}
+
+/* ---------- hand: two staggered rows ---------- */
+.card--tappable {
+  cursor: pointer;
+}
+.card--selected {
+  box-shadow:
+    0 0 0 3px #4fd69c,
+    0 0 18px rgba(79, 214, 156, 0.6),
+    0 6px 14px rgba(0, 0, 0, 0.4);
+}
+.card-fresh {
+  /* sits under the corner index: the only part of a card that is never overlapped */
+  position: absolute;
+  top: 36%;
+  left: 3%;
+  padding: 1px 3px;
+  border-radius: 4px;
+  font-size: 10cqi;
+  font-weight: 900;
+  color: #3b2400;
+  background: var(--gold);
+}
+
+/* ---------- in-game extras ---------- */
+.panel-sub {
+  margin: -4px 0 4px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+}
+.game-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 70px;
+  transform: translateX(-50%);
+  z-index: 45;
+  padding: 10px 16px;
+  border-radius: 12px;
+  white-space: nowrap;
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(242, 193, 78, 0.4);
+}
+.buried {
+  margin: 4px 0 6px;
+}
+.buried-cards {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+.buried-card {
+  width: 44px;
+}
+
+/* ---------- login ---------- */
+.login {
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: calc(24px + var(--safe-top)) 24px calc(24px + var(--safe-bottom));
+  text-align: center;
+}
+.login-buttons {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.login-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 52px;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 16px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+.login-btn:disabled {
+  opacity: 0.6;
+}
+.login-btn--apple {
+  background: #000;
+  color: #fff;
+}
+.login-btn--google {
+  background: #fff;
+  color: #1f1f1f;
+}
+.login-btn--facebook {
+  background: #1877f2;
+  color: #fff;
+}
+.login-btn--guest {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+.login-btn--icon {
+  width: 64px;
+  height: 52px;
+}
+
+/* ---------- menu: profile + room setup ---------- */
+.profile-bar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.profile-avatar {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  font-size: 20px;
+  color: #3b2400;
+  background: linear-gradient(135deg, #ffe08a, var(--gold-2));
+  box-shadow: 0 0 0 2px var(--gold), 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.profile-provider {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  color: #000;
+  font-size: 11px;
+}
+.profile-provider svg {
+  width: 14px;
+  height: 14px;
+}
+.profile-provider--facebook {
+  background: #1877f2;
+  color: #fff;
+}
+.profile-provider--apple {
+  background: #000;
+  color: #fff;
+}
+.profile-info {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+.logo--small {
+  font-size: 44px;
+  margin: 0;
+}
+.room {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(90, 50, 24, 0.55), rgba(46, 23, 10, 0.65));
+  border: 1px solid rgba(242, 193, 78, 0.35);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.room-title {
+  font-family: 'Playfair Display', serif;
+  font-weight: 900;
+  font-size: 22px;
+  color: var(--gold);
+  text-align: center;
+}
+.room-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.room-row--inline {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+.room-label {
+  font-weight: 800;
+  font-size: 14px;
+}
+.room-help {
+  font-size: 12px;
+  color: var(--muted);
+}
+.mode-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.mode-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 2px 8px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 13px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+}
+.mode-chip--on {
+  background: linear-gradient(180deg, #ffe08a, var(--gold));
+  color: #3b2400;
+  border-color: var(--gold);
+}
+.mode-chip-sub {
+  font-size: 10px;
+  font-weight: 600;
+  opacity: 0.75;
+}
+.seg--full {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+}
+
+/* ---------- settings ---------- */
+.field small {
+  display: block;
+  font-size: 12px;
+}
+.section-title {
+  margin: 24px 0 10px;
+}
+.account {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  margin-bottom: 14px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.25);
+}
+.link-row {
+  display: flex;
+  gap: 10px;
 }

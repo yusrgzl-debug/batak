@@ -1,23 +1,37 @@
 import { Card, Suit, newDeck, shuffle, sortHand, sameCard } from './cards';
 import { PlayedCard, currentWinner, isLegal } from './rules';
 
-export type Mode = 'ihaleli' | 'esli' | 'kozMaca';
+export type Mode = 'ihaleli' | 'esli' | 'gommeli' | 'kozMaca';
 
 export const MODE_INFO: Record<Mode, { title: string; desc: string }> = {
-  ihaleli: { title: 'İhaleli Batak', desc: 'İhaleyi kazanan kozu seçer. Herkes kendi için oynar.' },
-  esli: { title: 'Eşli Batak', desc: 'Karşılıklı oturanlar takım. İhaleyi takım tutturur.' },
-  kozMaca: { title: 'Koz Maça', desc: 'Koz her zaman maça. Herkes kaç el alacağını söyler.' },
+  ihaleli: { title: 'İhaleli', desc: '4 kişi. İhaleyi kazanan kozu seçer, herkes kendi için oynar.' },
+  esli: { title: 'Eşli', desc: '4 kişi. Karşılıklı oturanlar takım, ihaleyi takım tutturur.' },
+  gommeli: { title: 'Gömmeli', desc: '3 kişi, 16’şar kart. İhaleyi alan yerdeki 4 kartı alır, 4 kart gömer.' },
+  kozMaca: { title: 'Koz Maça', desc: '4 kişi. Koz her zaman maça, herkes kaç el alacağını söyler.' },
 };
+
+/**
+ * zorunlu ("Koz Çıkmalı"): elinde yerdeki renk yoksa koz atmak, yerde koz varsa yükseltmek zorunlu.
+ * serbest: renk yoksa istenen kart atılabilir.
+ */
+export type TrumpRule = 'zorunlu' | 'serbest';
 
 export interface Settings {
   mode: Mode;
   rounds: number;
   minBid: number;
+  trumpRule: TrumpRule;
 }
 
-export const DEFAULT_SETTINGS: Settings = { mode: 'ihaleli', rounds: 11, minBid: 5 };
+export const DEFAULT_SETTINGS: Settings = { mode: 'ihaleli', rounds: 11, minBid: 5, trumpRule: 'zorunlu' };
 
-export type Phase = 'bidding' | 'trump' | 'playing' | 'trickEnd' | 'roundEnd' | 'gameEnd';
+export const playerCount = (mode: Mode) => (mode === 'gommeli' ? 3 : 4);
+export const handSize = (mode: Mode) => (mode === 'gommeli' ? 16 : 13);
+export const KITTY = 4;
+/** Gömmeli is usually bid from 7 (16 tricks per hand); other modes use the configured minimum. */
+export const minBidFor = (s: Settings) => (s.mode === 'gommeli' ? Math.max(s.minBid, 7) : s.minBid);
+
+export type Phase = 'bidding' | 'bury' | 'trump' | 'playing' | 'trickEnd' | 'roundEnd' | 'gameEnd';
 export type Bid = number | 'pass' | null;
 
 export interface RoundResult {
@@ -32,10 +46,16 @@ export interface RoundResult {
 
 export interface GameState {
   settings: Settings;
+  /** number of players: 4, or 3 in Gömmeli */
+  n: number;
   phase: Phase;
   round: number;
   dealer: number;
   hands: Card[][];
+  /** Gömmeli: the 4 face-down cards the winning bidder picks up */
+  kitty: Card[];
+  /** Gömmeli: the 4 cards the bidder buried (only the bidder knows them) */
+  buried: Card[];
   bids: Bid[];
   highBid: { player: number; amount: number } | null;
   turn: number;
@@ -50,18 +70,22 @@ export interface GameState {
   history: RoundResult[];
 }
 
-export const PLAYERS = 4;
-export const next = (p: number) => (p + 1) % PLAYERS;
+export const nextPlayer = (p: number, n: number) => (p + 1) % n;
 export const teamOf = (p: number) => p % 2;
-export const partnerOf = (p: number) => (p + 2) % PLAYERS;
+export const partnerOf = (p: number) => (p + 2) % 4;
+const range = (n: number) => Array.from({ length: n }, (_, i) => i);
 
 export function newGame(settings: Settings, rand: () => number = Math.random): GameState {
+  const n = playerCount(settings.mode);
   const base: GameState = {
     settings,
+    n,
     phase: 'bidding',
     round: 0,
-    dealer: Math.floor(rand() * PLAYERS),
+    dealer: Math.floor(rand() * n),
     hands: [],
+    kitty: [],
+    buried: [],
     bids: [],
     highBid: null,
     turn: 0,
@@ -70,45 +94,51 @@ export function newGame(settings: Settings, rand: () => number = Math.random): G
     trick: [],
     trickLeader: 0,
     lastTrick: null,
-    tricks: [0, 0, 0, 0],
+    tricks: range(n).map(() => 0),
     played: [],
-    scores: [0, 0, 0, 0],
+    scores: range(n).map(() => 0),
     history: [],
   };
   return deal(base, rand);
 }
 
 export function deal(s: GameState, rand: () => number = Math.random): GameState {
+  const { n } = s;
+  const size = handSize(s.settings.mode);
   const deck = shuffle(newDeck(), rand);
-  const hands = [0, 1, 2, 3].map((i) => sortHand(deck.slice(i * 13, i * 13 + 13)));
-  const dealer = s.round === 0 ? s.dealer : next(s.dealer);
-  const kozMaca = s.settings.mode === 'kozMaca';
+  const hands = range(n).map((i) => sortHand(deck.slice(i * size, (i + 1) * size)));
+  const kitty = deck.slice(n * size);
+  const dealer = s.round === 0 ? s.dealer : nextPlayer(s.dealer, n);
+  const first = nextPlayer(dealer, n);
   return {
     ...s,
     phase: 'bidding',
     round: s.round + 1,
     dealer,
     hands,
-    bids: [null, null, null, null],
+    kitty,
+    buried: [],
+    bids: range(n).map(() => null),
     highBid: null,
-    turn: next(dealer),
-    trump: kozMaca ? 'S' : null,
+    turn: first,
+    trump: s.settings.mode === 'kozMaca' ? 'S' : null,
     trumpBroken: false,
     trick: [],
-    trickLeader: next(dealer),
+    trickLeader: first,
     lastTrick: null,
-    tricks: [0, 0, 0, 0],
+    tricks: range(n).map(() => 0),
     played: [],
   };
 }
 
-/** Bids the current player may make. In İhale a pass is allowed unless the player is forced. */
+/** Bids the current player may make. A pass is allowed unless everyone else already passed. */
 export function bidOptions(s: GameState): { min: number; max: number; canPass: boolean } {
-  if (s.settings.mode === 'kozMaca') return { min: 1, max: 13, canPass: false };
-  const min = s.highBid ? s.highBid.amount + 1 : s.settings.minBid;
-  const others = s.bids.filter((b, i) => i !== s.turn && b === 'pass').length;
-  const forced = !s.highBid && others === PLAYERS - 1;
-  return { min, max: 13, canPass: !forced };
+  const max = handSize(s.settings.mode);
+  if (s.settings.mode === 'kozMaca') return { min: 1, max, canPass: false };
+  const min = s.highBid ? s.highBid.amount + 1 : minBidFor(s.settings);
+  const othersPassed = s.bids.filter((b, i) => i !== s.turn && b === 'pass').length;
+  const forced = !s.highBid && othersPassed === s.n - 1;
+  return { min, max, canPass: !forced };
 }
 
 export function placeBid(s: GameState, player: number, bid: number | 'pass'): GameState {
@@ -121,21 +151,39 @@ export function placeBid(s: GameState, player: number, bid: number | 'pass'): Ga
 
   if (s.settings.mode === 'kozMaca') {
     if (bids.every((b) => b !== null)) {
-      return { ...s, bids, phase: 'playing', turn: next(s.dealer), trickLeader: next(s.dealer) };
+      const first = nextPlayer(s.dealer, s.n);
+      return { ...s, bids, phase: 'playing', turn: first, trickLeader: first };
     }
-    return { ...s, bids, turn: next(player) };
+    return { ...s, bids, turn: nextPlayer(player, s.n) };
   }
 
   const highBid = bid === 'pass' ? s.highBid : { player, amount: bid };
-  const active = [0, 1, 2, 3].filter((p) => bids[p] !== 'pass');
+  const active = range(s.n).filter((p) => bids[p] !== 'pass');
 
-  if (highBid && (active.length === 1 || highBid.amount === 13)) {
+  if (highBid && (active.length === 1 || highBid.amount === opts.max)) {
+    if (s.settings.mode === 'gommeli') {
+      // the bidder picks up the kitty, then buries 4 cards
+      const hands = s.hands.slice();
+      hands[highBid.player] = sortHand([...hands[highBid.player], ...s.kitty]);
+      return { ...s, bids, highBid, hands, phase: 'bury', turn: highBid.player };
+    }
     return { ...s, bids, highBid, phase: 'trump', turn: highBid.player };
   }
 
-  let t = next(player);
-  while (bids[t] === 'pass') t = next(t);
+  let t = nextPlayer(player, s.n);
+  while (bids[t] === 'pass') t = nextPlayer(t, s.n);
   return { ...s, bids, highBid, turn: t };
+}
+
+/** Gömmeli: the bidder buries exactly 4 cards from their 20-card hand. */
+export function buryCards(s: GameState, player: number, cards: Card[]): GameState {
+  if (s.phase !== 'bury' || player !== s.turn || cards.length !== KITTY) return s;
+  const hand = s.hands[player];
+  const unique = cards.filter((c, i) => cards.findIndex((d) => sameCard(c, d)) === i);
+  if (unique.length !== KITTY || !unique.every((c) => hand.some((h) => sameCard(h, c)))) return s;
+  const hands = s.hands.slice();
+  hands[player] = hand.filter((h) => !unique.some((c) => sameCard(c, h)));
+  return { ...s, hands, buried: unique, phase: 'trump' };
 }
 
 export function chooseTrump(s: GameState, suit: Suit): GameState {
@@ -146,15 +194,15 @@ export function chooseTrump(s: GameState, suit: Suit): GameState {
 export function playCard(s: GameState, player: number, card: Card): GameState {
   if (s.phase !== 'playing' || player !== s.turn) return s;
   const hand = s.hands[player];
-  if (!isLegal(card, hand, s.trick, s.trump, s.trumpBroken)) return s;
+  if (!isLegal(card, hand, s.trick, s.trump, s.trumpBroken, s.settings.trumpRule)) return s;
 
   const hands = s.hands.slice();
   hands[player] = hand.filter((c) => !sameCard(c, card));
   const trick = [...s.trick, { player, card }];
   const trumpBroken = s.trumpBroken || card.suit === s.trump;
 
-  if (trick.length < PLAYERS) {
-    return { ...s, hands, trick, trumpBroken, turn: next(player) };
+  if (trick.length < s.n) {
+    return { ...s, hands, trick, trumpBroken, turn: nextPlayer(player, s.n) };
   }
   const winner = currentWinner(trick, s.trump)!.player;
   return { ...s, hands, trick, trumpBroken, phase: 'trickEnd', turn: winner };
@@ -204,6 +252,7 @@ export function scoreRound(s: Pick<GameState, 'settings' | 'bids' | 'highBid' | 
     });
   }
 
+  // İhaleli and Gömmeli
   return t.map((won, p) => {
     if (p === bidder) return won >= bid ? won : -bid;
     return won === 0 ? -bid : won; // el alamayan da batar
@@ -213,7 +262,7 @@ export function scoreRound(s: Pick<GameState, 'settings' | 'bids' | 'highBid' | 
 function finishRound(s: GameState): GameState {
   const delta = scoreRound(s);
   const scores = s.scores.map((v, i) => v + delta[i]);
-  const bidder = s.highBid?.player ?? next(s.dealer);
+  const bidder = s.highBid?.player ?? nextPlayer(s.dealer, s.n);
   const result: RoundResult = {
     round: s.round,
     bidder,
@@ -232,7 +281,7 @@ export function nextRound(s: GameState, rand?: () => number): GameState {
   return deal(s, rand);
 }
 
-/** Final ranking: player indices ordered by score (team score in Eşli). */
+/** Final ranking: player indices ordered by score. */
 export function ranking(s: GameState): number[] {
-  return [0, 1, 2, 3].sort((a, b) => s.scores[b] - s.scores[a]);
+  return range(s.n).sort((a, b) => s.scores[b] - s.scores[a]);
 }

@@ -5,6 +5,8 @@ import {
   DEFAULT_SETTINGS,
   GameState,
   Mode,
+  bidOptions,
+  buryCards,
   chooseTrump,
   collectTrick,
   newGame,
@@ -13,7 +15,7 @@ import {
   playCard,
   scoreRound,
 } from './game';
-import { botBid, botPlay, bestTrump } from './ai';
+import { botBid, botBury, botPlay, bestTrump } from './ai';
 
 const c = (s: string): Card => ({ suit: s[0] as Card['suit'], rank: Number(s.slice(1)) as Card['rank'] });
 const pc = (player: number, s: string) => ({ player, card: c(s) });
@@ -48,6 +50,11 @@ describe('legalMoves', () => {
     const hand = [c('S3'), c('S9'), c('D4')];
     expect(legalMoves(hand, [pc(0, 'H10')], 'S', false)).toEqual([c('S3'), c('S9')]);
     expect(legalMoves(hand, [pc(0, 'H10'), pc(1, 'S5')], 'S', true)).toEqual([c('S9')]);
+  });
+
+  it('serbest rule: no obligation to trump when void', () => {
+    const hand = [c('S3'), c('D4')];
+    expect(legalMoves(hand, [pc(0, 'H10')], 'S', false, 'serbest')).toEqual(hand);
   });
 
   it('any card when void in led suit and trump', () => {
@@ -110,12 +117,41 @@ describe('bidding', () => {
   });
 });
 
-function simulate(mode: Mode, seed: number): GameState {
+describe('gömmeli', () => {
+  const settings = { ...DEFAULT_SETTINGS, mode: 'gommeli' as Mode };
+
+  it('deals 16 cards to 3 players and leaves 4 in the kitty', () => {
+    const s = newGame(settings, seeded(4));
+    expect(s.n).toBe(3);
+    expect(s.hands.map((h) => h.length)).toEqual([16, 16, 16]);
+    expect(s.kitty).toHaveLength(4);
+    expect(bidOptions(s).min).toBe(7);
+  });
+
+  it('bidder picks up the kitty, buries 4, then chooses trump', () => {
+    let s = newGame(settings, seeded(5));
+    const bidder = s.turn;
+    s = placeBid(s, bidder, 8);
+    s = placeBid(s, s.turn, 'pass');
+    s = placeBid(s, s.turn, 'pass');
+    expect(s.phase).toBe('bury');
+    expect(s.hands[bidder]).toHaveLength(20);
+    expect(buryCards(s, bidder, s.hands[bidder].slice(0, 3))).toBe(s); // must be exactly 4
+    const toBury = s.hands[bidder].slice(0, 4);
+    s = buryCards(s, bidder, toBury);
+    expect(s.phase).toBe('trump');
+    expect(s.hands[bidder]).toHaveLength(16);
+    expect(s.buried).toEqual(toBury);
+  });
+});
+
+function simulate(mode: Mode, seed: number, trumpRule: 'zorunlu' | 'serbest' = 'zorunlu'): GameState {
   const rand = seeded(seed);
-  let s = newGame({ mode, rounds: 3, minBid: 5 }, rand);
+  let s = newGame({ mode, rounds: 3, minBid: 5, trumpRule }, rand);
   let guard = 0;
   while (s.phase !== 'gameEnd' && guard++ < 10000) {
     if (s.phase === 'bidding') s = placeBid(s, s.turn, botBid(s, s.turn));
+    else if (s.phase === 'bury') s = buryCards(s, s.turn, botBury(s, s.turn));
     else if (s.phase === 'trump') s = chooseTrump(s, bestTrump(s.hands[s.turn]));
     else if (s.phase === 'playing') {
       const before = s;
@@ -128,14 +164,17 @@ function simulate(mode: Mode, seed: number): GameState {
 }
 
 describe('full games with bots', () => {
-  for (const mode of ['ihaleli', 'esli', 'kozMaca'] as Mode[]) {
-    it(`${mode}: completes 3 rounds, 13 tricks per round`, () => {
-      for (let seed = 1; seed <= 20; seed++) {
-        const s = simulate(mode, seed);
-        expect(s.phase).toBe('gameEnd');
-        expect(s.history).toHaveLength(3);
-        for (const r of s.history) expect(r.tricks.reduce((a, b) => a + b, 0)).toBe(13);
-      }
-    });
+  for (const mode of ['ihaleli', 'esli', 'gommeli', 'kozMaca'] as Mode[]) {
+    for (const rule of ['zorunlu', 'serbest'] as const) {
+      it(`${mode} (${rule}): completes 3 rounds, every card played`, () => {
+        const tricks = mode === 'gommeli' ? 16 : 13;
+        for (let seed = 1; seed <= 20; seed++) {
+          const s = simulate(mode, seed, rule);
+          expect(s.phase).toBe('gameEnd');
+          expect(s.history).toHaveLength(3);
+          for (const r of s.history) expect(r.tricks.reduce((a, b) => a + b, 0)).toBe(tricks);
+        }
+      });
+    }
   }
 });

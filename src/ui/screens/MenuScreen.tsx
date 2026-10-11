@@ -1,9 +1,11 @@
 import { motion } from 'framer-motion';
-import { MODE_INFO, Mode, Settings } from '../../engine/game';
-import { PlayingCard } from '../components/PlayingCard';
+import { MODE_INFO, Mode, Settings, TrumpRule, playerCount } from '../../engine/game';
+import { User } from '../../services/auth';
 import { Stats } from '../storage';
+import { ProviderIcon } from './LoginScreen';
 
 interface Props {
+  user: User;
   settings: Settings;
   stats: Stats;
   premium: boolean;
@@ -15,83 +17,105 @@ interface Props {
 }
 
 const ROUNDS = [5, 11, 21];
+const MODES: Mode[] = ['ihaleli', 'esli', 'gommeli', 'kozMaca'];
+const TRUMP_RULES: { value: TrumpRule; label: string; desc: string }[] = [
+  { value: 'zorunlu', label: 'Koz Çıkmalı', desc: 'Elinde yerdeki renk yoksa koz atmak zorunlu.' },
+  { value: 'serbest', label: 'Serbest', desc: 'Renk yoksa istediğin kartı atabilirsin.' },
+];
 
-export function MenuScreen({ settings, stats, premium, onChange, onPlay, onPremium, onSettings, onRules }: Props) {
+export function MenuScreen({ user, settings, stats, premium, onChange, onPlay, onPremium, onSettings, onRules }: Props) {
+  const rule = TRUMP_RULES.find((r) => r.value === settings.trumpRule)!;
   return (
     <div className="menu">
-      <div className="menu-top">
+      <div className="profile-bar">
+        <div className="profile">
+          <div className="profile-avatar">
+            {user.photoUrl ? <img src={user.photoUrl} alt="" /> : user.name[0]}
+            <span className={`profile-provider profile-provider--${user.provider}`}>
+              <ProviderIcon p={user.provider} />
+            </span>
+          </div>
+          <div className="profile-info">
+            <b>{user.name}</b>
+            <span className="muted small">
+              {stats.played} oyun · {stats.won} galibiyet
+            </span>
+          </div>
+        </div>
         <button className="icon-btn" onClick={onSettings} aria-label="Ayarlar">
           ⚙
         </button>
-        {premium ? (
-          <span className="premium-tag">♛ Premium</span>
-        ) : (
-          <button className="premium-btn" onClick={onPremium}>
-            ♛ Reklamsız Oyna
-          </button>
-        )}
       </div>
 
-      <div className="logo-wrap">
-        <div className="logo-cards">
-          {[
-            { suit: 'H', rank: 14, r: -18, x: -46 },
-            { suit: 'S', rank: 14, r: 0, x: 0 },
-            { suit: 'D', rank: 13, r: 18, x: 46 },
-          ].map((c, i) => (
-            <motion.div
-              key={i}
-              className="logo-card"
-              initial={{ y: 80, rotate: 0, opacity: 0 }}
-              animate={{ y: 0, rotate: c.r, x: c.x, opacity: 1 }}
-              transition={{ delay: 0.1 + i * 0.12, type: 'spring', stiffness: 200, damping: 18 }}
-            >
-              <PlayingCard card={{ suit: c.suit as 'S', rank: c.rank as 14 }} />
-            </motion.div>
-          ))}
-        </div>
-        <h1 className="logo">BATAK</h1>
-        <div className="logo-sub">Klasik Türk Kart Oyunu</div>
-      </div>
+      <h1 className="logo logo--small">BATAK</h1>
 
-      <div className="mode-list">
-        {(Object.keys(MODE_INFO) as Mode[]).map((m) => (
-          <button
-            key={m}
-            className={`mode-card ${settings.mode === m ? 'mode-card--on' : ''}`}
-            onClick={() => onChange({ ...settings, mode: m })}
-          >
-            <span className="mode-title">{MODE_INFO[m].title}</span>
-            <span className="mode-desc">{MODE_INFO[m].desc}</span>
-          </button>
-        ))}
-      </div>
-
-      <div className="seg">
-        <span className="seg-label">El sayısı</span>
-        {ROUNDS.map((r) => (
-          <button
-            key={r}
-            className={`seg-btn ${settings.rounds === r ? 'seg-btn--on' : ''}`}
-            onClick={() => onChange({ ...settings, rounds: r })}
-          >
-            {r}
-          </button>
-        ))}
-      </div>
-
-      <motion.button className="btn btn--gold btn--xl" whileTap={{ scale: 0.96 }} onClick={onPlay}>
-        OYNA
-      </motion.button>
-
-      <div className="menu-foot">
-        <button className="link" onClick={onRules}>
-          Nasıl oynanır?
+      {premium ? (
+        <span className="premium-tag">♛ Premium</span>
+      ) : (
+        <button className="premium-btn" onClick={onPremium}>
+          ♛ Reklamsız Oyna
         </button>
-        <span className="muted small">
-          {stats.played} oyun · {stats.won} galibiyet
-        </span>
-      </div>
+      )}
+
+      <section className="room">
+        <div className="room-title">Oda Kur</div>
+
+        <div className="room-row">
+          <span className="room-label">Oyun Tipi</span>
+          <div className="mode-grid">
+            {MODES.map((m) => (
+              <button
+                key={m}
+                className={`mode-chip ${settings.mode === m ? 'mode-chip--on' : ''}`}
+                onClick={() => onChange({ ...settings, mode: m })}
+              >
+                {MODE_INFO[m].title}
+                <span className="mode-chip-sub">{playerCount(m)} kişi</span>
+              </button>
+            ))}
+          </div>
+          <span className="room-help">{MODE_INFO[settings.mode].desc}</span>
+        </div>
+
+        <div className="room-row room-row--inline">
+          <span className="room-label">El Sayısı</span>
+          <div className="seg">
+            {ROUNDS.map((r) => (
+              <button
+                key={r}
+                className={`seg-btn ${settings.rounds === r ? 'seg-btn--on' : ''}`}
+                onClick={() => onChange({ ...settings, rounds: r })}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="room-row">
+          <span className="room-label">Koz Oynama Kuralı</span>
+          <div className="seg seg--full">
+            {TRUMP_RULES.map((r) => (
+              <button
+                key={r.value}
+                className={`seg-btn ${settings.trumpRule === r.value ? 'seg-btn--on' : ''}`}
+                onClick={() => onChange({ ...settings, trumpRule: r.value })}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
+          <span className="room-help">{rule.desc}</span>
+        </div>
+
+        <motion.button className="btn btn--gold btn--xl wide" whileTap={{ scale: 0.96 }} onClick={onPlay}>
+          OYNA
+        </motion.button>
+      </section>
+
+      <button className="link" onClick={onRules}>
+        Nasıl oynanır?
+      </button>
     </div>
   );
 }

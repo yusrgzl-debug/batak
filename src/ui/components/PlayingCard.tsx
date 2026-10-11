@@ -4,6 +4,10 @@ interface Props {
   card?: Card;
   faceDown?: boolean;
   playable?: boolean;
+  /** highlight as a legal move */
+  glow?: boolean;
+  selected?: boolean;
+  fresh?: boolean;
   dimmed?: boolean;
   small?: boolean;
   onClick?: () => void;
@@ -12,8 +16,15 @@ interface Props {
 
 const FACE_TITLE: Record<number, string> = { 11: 'VALE', 12: 'KIZ', 13: 'PAPAZ' };
 
-export function PlayingCard({ card, faceDown, playable, dimmed, small, onClick, style }: Props) {
-  const cls = ['card', small && 'card--small', playable && 'card--playable', dimmed && 'card--dimmed'];
+export function PlayingCard({ card, faceDown, playable, glow, selected, fresh, dimmed, small, onClick, style }: Props) {
+  const cls = [
+    'card',
+    small && 'card--small',
+    playable && 'card--tappable',
+    glow && 'card--playable',
+    selected && 'card--selected',
+    dimmed && 'card--dimmed',
+  ];
   if (faceDown || !card) {
     return (
       <div className={[...cls, 'card--back'].filter(Boolean).join(' ')} style={style}>
@@ -52,6 +63,7 @@ export function PlayingCard({ card, faceDown, playable, dimmed, small, onClick, 
           <span className={card.rank === 14 ? 'card-pip card-pip--ace' : 'card-pip'}>{sym}</span>
         )}
       </div>
+      {fresh && <span className="card-fresh">YENİ</span>}
       <div className="card-corner card-corner--br">
         <span className="card-rank">{label}</span>
         <span className="card-suit">{sym}</span>

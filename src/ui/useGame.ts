@@ -3,6 +3,7 @@ import { Card, Suit } from '../engine/cards';
 import {
   GameState,
   Settings,
+  buryCards,
   chooseTrump,
   collectTrick,
   newGame,
@@ -10,7 +11,7 @@ import {
   placeBid,
   playCard,
 } from '../engine/game';
-import { bestTrump, botBid, botPlay } from '../engine/ai';
+import { bestTrump, botBid, botBury, botPlay } from '../engine/ai';
 import { sfx } from './sound';
 
 export const HUMAN = 0;
@@ -36,6 +37,7 @@ export function useGame(settings: Settings, speed: keyof typeof SPEED) {
       });
     } else if (s.turn !== HUMAN) {
       if (s.phase === 'bidding') after(700, () => placeBid(s, s.turn, botBid(s, s.turn)));
+      else if (s.phase === 'bury') after(1200, () => buryCards(s, s.turn, botBury(s, s.turn)));
       else if (s.phase === 'trump') after(800, () => chooseTrump(s, bestTrump(s.hands[s.turn])));
       else if (s.phase === 'playing')
         after(650, () => {
@@ -47,6 +49,7 @@ export function useGame(settings: Settings, speed: keyof typeof SPEED) {
   }, [state, k]);
 
   const bid = useCallback((b: number | 'pass') => setState((s) => placeBid(s, HUMAN, b)), []);
+  const bury = useCallback((cards: Card[]) => setState((s) => buryCards(s, HUMAN, cards)), []);
   const trump = useCallback((suit: Suit) => setState((s) => chooseTrump(s, suit)), []);
   const play = useCallback((c: Card) => {
     sfx.card();
@@ -55,5 +58,5 @@ export function useGame(settings: Settings, speed: keyof typeof SPEED) {
   const advance = useCallback(() => setState((s) => nextRound(s)), []);
   const restart = useCallback(() => setState(newGame(settings)), [settings]);
 
-  return { state, bid, trump, play, advance, restart };
+  return { state, bid, bury, trump, play, advance, restart };
 }

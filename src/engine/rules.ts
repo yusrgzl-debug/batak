@@ -33,7 +33,8 @@ export function beats(a: Card, b: Card, lead: Suit, trump: Suit | null): boolean
  *    (unless the hand holds nothing but trump).
  *  - Follow suit if possible, and beat the highest card of the led suit
  *    when the trick has not been trumped yet ("yükseltme zorunluluğu").
- *  - Void in the led suit: must play trump if held, over-trumping when possible.
+ *  - Void in the led suit: must play trump if held, over-trumping when possible
+ *    ("Koz Çıkmalı"; with the 'serbest' rule any card may be played).
  *  - Void in both: any card.
  */
 export function legalMoves(
@@ -41,6 +42,7 @@ export function legalMoves(
   trick: PlayedCard[],
   trump: Suit | null,
   trumpBroken: boolean,
+  trumpRule: 'zorunlu' | 'serbest' = 'zorunlu',
 ): Card[] {
   if (hand.length === 0) return [];
 
@@ -63,7 +65,7 @@ export function legalMoves(
     return higher.length > 0 ? higher : sameSuit;
   }
 
-  if (trump) {
+  if (trump && trumpRule === 'zorunlu') {
     const trumps = hand.filter((c) => c.suit === trump);
     if (trumps.length > 0) {
       if (winner.card.suit === trump) {
@@ -77,6 +79,13 @@ export function legalMoves(
   return hand.slice();
 }
 
-export function isLegal(card: Card, hand: Card[], trick: PlayedCard[], trump: Suit | null, trumpBroken: boolean) {
-  return legalMoves(hand, trick, trump, trumpBroken).some((c) => c.suit === card.suit && c.rank === card.rank);
+export function isLegal(
+  card: Card,
+  hand: Card[],
+  trick: PlayedCard[],
+  trump: Suit | null,
+  trumpBroken: boolean,
+  trumpRule: 'zorunlu' | 'serbest' = 'zorunlu',
+) {
+  return legalMoves(hand, trick, trump, trumpBroken, trumpRule).some((c) => c.suit === card.suit && c.rank === card.rank);
 }

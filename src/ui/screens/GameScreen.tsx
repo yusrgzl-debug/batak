@@ -1,22 +1,25 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { SUITS, SUIT_NAME, SUIT_SYMBOL, Suit, isRed, cardId } from '../../engine/cards';
-import { GameState, MODE_INFO, Settings, bidOptions, ranking, teamOf } from '../../engine/game';
+import { Card, SUITS, SUIT_NAME, SUIT_SYMBOL, Suit, isRed, cardId } from '../../engine/cards';
+import { GameState, KITTY, MODE_INFO, Settings, bidOptions, ranking, teamOf } from '../../engine/game';
 import { legalMoves } from '../../engine/rules';
+import { Hand } from '../components/Hand';
 import { PlayingCard } from '../components/PlayingCard';
 import { HUMAN, useGame } from '../useGame';
 import { Prefs } from '../storage';
 import { sfx } from '../sound';
 
-export const NAMES = ['Sen', 'Elif', 'Kerem', 'Deniz'];
-const SEAT = ['bottom', 'right', 'top', 'left'] as const;
-const FROM: Record<(typeof SEAT)[number], { x: number; y: number }> = {
+const BOTS = ['Elif', 'Kerem', 'Deniz'];
+type Seat = 'bottom' | 'right' | 'top' | 'left';
+/** Play goes counter-clockwise: me → right → (top) → left. Gömmeli has no top seat. */
+const seatOf = (p: number, n: number): Seat => (n === 3 ? (['bottom', 'right', 'left'] as const) : (['bottom', 'right', 'top', 'left'] as const))[p];
+const FROM: Record<Seat, { x: number; y: number }> = {
   bottom: { x: 0, y: 260 },
   right: { x: 260, y: 0 },
   top: { x: 0, y: -260 },
   left: { x: -260, y: 0 },
 };
-const SLOT: Record<(typeof SEAT)[number], { x: number; y: number; r: number }> = {
+const SLOT: Record<Seat, { x: number; y: number; r: number }> = {
   bottom: { x: 0, y: 52, r: -3 },
   right: { x: 60, y: 0, r: 8 },
   top: { x: 0, y: -52, r: 2 },
@@ -24,7 +27,7 @@ const SLOT: Record<(typeof SEAT)[number], { x: number; y: number; r: number }> =
 };
 
 const collectVariants = {
-  collect: (seat: (typeof SEAT)[number] | null) => ({
+  collect: (seat: Seat | null) => ({
     ...(seat ? { x: FROM[seat].x * 0.7, y: FROM[seat].y * 0.7 } : {}),
     opacity: 0,
     scale: 0.5,
@@ -35,17 +38,39 @@ const collectVariants = {
 interface Props {
   settings: Settings;
   prefs: Prefs;
+  playerName: string;
   onExit: () => void;
   onGameEnd: (s: GameState) => void;
 }
 
-export function GameScreen({ settings, prefs, onExit, onGameEnd }: Props) {
-  const { state: s, bid, trump, play, advance, restart } = useGame(settings, prefs.speed);
+export function GameScreen({ settings, prefs, playerName, onExit, onGameEnd }: Props) {
+  const { state: s, bid, bury, trump, play, advance, restart } = useGame(settings, prefs.speed);
   const [showScores, setShowScores] = useState(false);
   const [confirmExit, setConfirmExit] = useState(false);
+  const [toBury, setToBury] = useState<Set<string>>(new Set());
+  const [toast, setToast] = useState<string | null>(null);
   const reported = useRef(false);
-  const names = useMemo(() => [prefs.playerName || 'Sen', ...NAMES.slice(1)], [prefs.playerName]);
+  const names = useMemo(() => [playerName, ...BOTS].slice(0, s.n), [playerName, s.n]);
   const esli = settings.mode === 'esli';
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = window.setTimeout(() => setToast(null), 1600);
+    return () => window.clearTimeout(t);
+  }, [toast]);
+
+  useEffect(() => {
+    if (s.phase !== 'bury') setToBury(new Set());
+  }, [s.phase]);
+
+  // El Sonu Yaz Boz kapalıysa el sonu tablosu gösterilmeden sonraki ele geçilir.
+  useEffect(() => {
+    if (s.phase !== 'roundEnd' || prefs.roundSummary) return;
+    const r = s.history[s.history.length - 1];
+    setToast(`${s.round}. el bitti · ${r.delta[HUMAN] > 0 ? '+' : ''}${r.delta[HUMAN]} puan`);
+    const t = window.setTimeout(advance, 1800);
+    return () => window.clearTimeout(t);
+  }, [s.phase, s.round, s.history, prefs.roundSummary, advance]);
 
   useEffect(() => {
     if (s.phase === 'gameEnd' && !reported.current) {
@@ -58,13 +83,32 @@ export function GameScreen({ settings, prefs, onExit, onGameEnd }: Props) {
 
   const myTurnToPlay = s.phase === 'playing' && s.turn === HUMAN;
   const legal = useMemo(
-    () => (myTurnToPlay ? legalMoves(s.hands[HUMAN], s.trick, s.trump, s.trumpBroken) : []),
-    [myTurnToPlay, s.hands, s.trick, s.trump, s.trumpBroken],
+    () => (myTurnToPlay ? legalMoves(s.hands[HUMAN], s.trick, s.trump, s.trumpBroken, settings.trumpRule) : []),
+    [myTurnToPlay, s.hands, s.trick, s.trump, s.trumpBroken, settings.trumpRule],
   );
-  const isLegal = (id: string) => legal.some((c) => cardId(c) === id);
+  const isLegal = (c: Card) => legal.some((l) => cardId(l) === cardId(c));
+  const burying = s.phase === 'bury' && s.turn === HUMAN;
+  const fresh = useMemo(() => (burying ? new Set(s.kitty.map(cardId)) : undefined), [burying, s.kitty]);
+
+  const onTap = (c: Card) => {
+    if (burying) {
+      const id = cardId(c);
+      setToBury((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else if (next.size < KITTY) next.add(id);
+        return next;
+      });
+      return;
+    }
+    if (!myTurnToPlay) return;
+    if (isLegal(c)) play(c);
+    else setToast('Bu kartı şu an atamazsın');
+  };
 
   // Cards fly towards whoever took the trick once it is collected.
-  const winnerSeat = s.phase === 'trickEnd' ? SEAT[s.turn] : s.lastTrick ? SEAT[s.lastTrick.winner] : null;
+  const winnerSeat =
+    s.phase === 'trickEnd' ? seatOf(s.turn, s.n) : s.lastTrick ? seatOf(s.lastTrick.winner, s.n) : null;
 
   return (
     <div className="game">
@@ -96,14 +140,14 @@ export function GameScreen({ settings, prefs, onExit, onGameEnd }: Props) {
           <div className="table-logo">BATAK</div>
         </div>
 
-        {[1, 2, 3].map((p) => (
+        {names.slice(1).map((_, i) => i + 1).map((p) => (
           <Opponent key={p} p={p} s={s} name={names[p]} esli={esli} />
         ))}
 
         <div className="trick">
           <AnimatePresence custom={winnerSeat}>
             {s.trick.map(({ player, card }) => {
-              const seat = SEAT[player];
+              const seat = seatOf(player, s.n);
               const slot = SLOT[seat];
               return (
                 <motion.div
@@ -125,6 +169,12 @@ export function GameScreen({ settings, prefs, onExit, onGameEnd }: Props) {
           {s.phase === 'trump' && s.turn !== HUMAN && (
             <div className="center-msg">{names[s.turn]} kozu seçiyor…</div>
           )}
+          {s.phase === 'bury' && s.turn !== HUMAN && (
+            <div className="center-msg">
+              {names[s.turn]} {s.highBid?.amount} ile ihaleyi aldı
+              <div className="muted small">yerdeki 4 kartı alıp gömüyor…</div>
+            </div>
+          )}
         </div>
 
         <PlayerBadge p={HUMAN} s={s} name={names[HUMAN]} esli={esli} />
@@ -133,13 +183,34 @@ export function GameScreen({ settings, prefs, onExit, onGameEnd }: Props) {
         <AnimatePresence>
           {s.phase === 'bidding' && s.turn === HUMAN && <BidPanel key="bid" s={s} onBid={bid} />}
           {s.phase === 'trump' && s.turn === HUMAN && <TrumpPanel key="trump" onPick={trump} />}
+          {burying && (
+            <BuryPanel
+              key="bury"
+              count={toBury.size}
+              onBury={() => bury(s.hands[HUMAN].filter((c) => toBury.has(cardId(c))))}
+            />
+          )}
+        </AnimatePresence>
+        <AnimatePresence>
+          {toast && (
+            <motion.div key="toast" className="game-toast" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+              {toast}
+            </motion.div>
+          )}
         </AnimatePresence>
       </div>
 
-      <Hand s={s} isLegal={isLegal} canPlay={myTurnToPlay} onPlay={play} />
+      <Hand
+        cards={s.hands[HUMAN]}
+        isActive={(c) => burying || (myTurnToPlay && (!prefs.cardHelper || isLegal(c)))}
+        dimInactive={prefs.cardHelper && myTurnToPlay}
+        selected={burying ? toBury : undefined}
+        fresh={fresh}
+        onTap={onTap}
+      />
 
       <AnimatePresence>
-        {s.phase === 'roundEnd' && (
+        {s.phase === 'roundEnd' && prefs.roundSummary && (
           <RoundEndModal key="round" s={s} names={names} onNext={advance} />
         )}
         {s.phase === 'gameEnd' && (
@@ -171,11 +242,11 @@ function bidText(b: GameState['bids'][number]) {
 }
 
 function PlayerBadge({ p, s, name, esli }: { p: number; s: GameState; name: string; esli: boolean }) {
-  const active = s.turn === p && (s.phase === 'bidding' || s.phase === 'playing' || s.phase === 'trump');
+  const active = s.turn === p && ['bidding', 'bury', 'trump', 'playing'].includes(s.phase);
   const isBidder = s.highBid?.player === p && s.phase !== 'bidding';
   const b = bidText(s.bids[p]);
   return (
-    <div className={`badge badge--${SEAT[p]} ${active ? 'badge--active' : ''}`}>
+    <div className={`badge badge--${seatOf(p, s.n)} ${active ? 'badge--active' : ''}`}>
       <div className={`avatar avatar--${p} ${esli ? `team-${teamOf(p)}` : ''}`}>
         {name[0]}
         {isBidder && <span className="avatar-crown">♛</span>}
@@ -196,7 +267,7 @@ function PlayerBadge({ p, s, name, esli }: { p: number; s: GameState; name: stri
 
 function Opponent({ p, s, name, esli }: { p: number; s: GameState; name: string; esli: boolean }) {
   const n = s.hands[p].length;
-  const seat = SEAT[p];
+  const seat = seatOf(p, s.n);
   const vertical = seat === 'left' || seat === 'right';
   return (
     <div className={`opponent opponent--${seat}`}>
@@ -206,70 +277,6 @@ function Opponent({ p, s, name, esli }: { p: number; s: GameState; name: string;
         ))}
       </div>
       <PlayerBadge p={p} s={s} name={name} esli={esli} />
-    </div>
-  );
-}
-
-function useWidth() {
-  const [w, setW] = useState(() => window.innerWidth);
-  useEffect(() => {
-    const on = () => setW(window.innerWidth);
-    window.addEventListener('resize', on);
-    return () => window.removeEventListener('resize', on);
-  }, []);
-  return w;
-}
-
-function Hand({
-  s,
-  isLegal,
-  canPlay,
-  onPlay,
-}: {
-  s: GameState;
-  isLegal: (id: string) => boolean;
-  canPlay: boolean;
-  onPlay: (c: GameState['hands'][number][number]) => void;
-}) {
-  const hand = s.hands[HUMAN];
-  const width = Math.min(useWidth(), 760);
-  const cardW = width < 420 ? 64 : 84;
-  const cardH = cardW * 1.44;
-  const n = hand.length;
-  // leave room on both sides for the fan's rotation spill
-  const step = n > 1 ? Math.min(cardW * 0.62, (width - cardW - 44) / (n - 1)) : 0;
-  const total = cardW + step * (n - 1);
-  const mid = (n - 1) / 2;
-  const arc = 0.45;
-
-  return (
-    <div className="hand" style={{ height: cardH + arc * mid * mid + 30 }}>
-      <AnimatePresence>
-        {hand.map((c, i) => {
-          const id = cardId(c);
-          const legal = canPlay && isLegal(id);
-          const off = i - mid;
-          return (
-            <motion.div
-              key={id}
-              className="hand-slot"
-              initial={{ y: 120, opacity: 0 }}
-              animate={{
-                x: -total / 2 + i * step,
-                y: off * off * arc + (legal ? -14 : 0),
-                rotate: off * 1.6,
-                opacity: 1,
-              }}
-              exit={{ y: -140, opacity: 0, transition: { duration: 0.2 } }}
-              transition={{ type: 'spring', stiffness: 300, damping: 28, delay: s.trick.length === 0 && s.tricks.every((t) => t === 0) ? i * 0.025 : 0 }}
-              style={{ width: cardW, zIndex: i }}
-              whileHover={legal ? { y: -26 } : undefined}
-            >
-              <PlayingCard card={c} playable={legal} dimmed={canPlay && !legal} onClick={() => onPlay(c)} />
-            </motion.div>
-          );
-        })}
-      </AnimatePresence>
     </div>
   );
 }
@@ -322,6 +329,18 @@ function BidPanel({ s, onBid }: { s: GameState; onBid: (b: number | 'pass') => v
   );
 }
 
+function BuryPanel({ count, onBury }: { count: number; onBury: () => void }) {
+  return (
+    <motion.div className="panel" {...sheet}>
+      <div className="panel-title">Yerdeki 4 kart eline eklendi</div>
+      <p className="panel-sub">Gömmek istediğin 4 kartı seç ({count}/{KITTY})</p>
+      <button className="btn btn--gold wide" disabled={count !== KITTY} onClick={onBury}>
+        Kartları Göm
+      </button>
+    </motion.div>
+  );
+}
+
 function TrumpPanel({ onPick }: { onPick: (s: Suit) => void }) {
   return (
     <motion.div className="panel" {...sheet}>
@@ -365,6 +384,18 @@ function RoundEndModal({ s, names, onNext }: { s: GameState; names: string[]; on
         <p className={made ? 'good' : 'bad'}>
           {names[r.bidder]} {r.bid} ihaleyi {SUIT_SYMBOL[r.trump]} kozla {made ? 'tutturdu' : 'tutturamadı — battı!'}
         </p>
+      )}
+      {s.buried.length > 0 && (
+        <div className="buried">
+          <span className="muted small">Gömülen kartlar</span>
+          <div className="buried-cards">
+            {s.buried.map((c) => (
+              <div key={cardId(c)} className="buried-card">
+                <PlayingCard card={c} />
+              </div>
+            ))}
+          </div>
+        </div>
       )}
       <table className="score-table">
         <thead>
