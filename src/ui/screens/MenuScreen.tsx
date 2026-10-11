@@ -1,30 +1,25 @@
 import { motion } from 'framer-motion';
-import { MODE_INFO, Mode, ROUND_OPTIONS, Settings, TrumpRule, playerCount } from '../../engine/game';
+import { ECONOMY, Wallet, adsLeft, canClaimDaily } from '../../engine/economy';
 import { User } from '../../services/auth';
+import appIcon from '../../assets/app-icon.png';
 import { Avatar } from '../components/Avatar';
-import { Stats } from '../storage';
+import { pt } from '../format';
 import { ProviderIcon } from './LoginScreen';
 
 interface Props {
   user: User;
-  settings: Settings;
-  stats: Stats;
+  wallet: Wallet;
   premium: boolean;
-  onChange: (s: Settings) => void;
-  onPlay: () => void;
-  onPremium: () => void;
-  onSettings: () => void;
-  onRules: () => void;
+  /** true while a rewarded ad is playing */
+  watchingAd: boolean;
+  onClaimDaily: () => void;
+  onWatchAd: () => void;
+  onNavigate: (to: 'rooms' | 'create' | 'leaderboard' | 'friends' | 'practice' | 'premium' | 'settings' | 'rules') => void;
 }
 
-const MODES: Mode[] = ['ihaleli', 'esli', 'gommeli', 'kozMaca'];
-const TRUMP_RULES: { value: TrumpRule; label: string; desc: string }[] = [
-  { value: 'zorunlu', label: 'Koz Çıkmalı', desc: 'Elinde yerdeki renk yoksa koz atmak zorunlu.' },
-  { value: 'serbest', label: 'Serbest', desc: 'Renk yoksa istediğin kartı atabilirsin.' },
-];
-
-export function MenuScreen({ user, settings, stats, premium, onChange, onPlay, onPremium, onSettings, onRules }: Props) {
-  const rule = TRUMP_RULES.find((r) => r.value === settings.trumpRule)!;
+export function MenuScreen({ user, wallet, premium, watchingAd, onClaimDaily, onWatchAd, onNavigate }: Props) {
+  const daily = canClaimDaily(wallet);
+  const ads = adsLeft(wallet);
   return (
     <div className="menu">
       <div className="profile-bar">
@@ -36,98 +31,74 @@ export function MenuScreen({ user, settings, stats, premium, onChange, onPlay, o
           </Avatar>
           <div className="profile-info">
             <b>{user.name}</b>
-            <span className="muted small">
-              {stats.played} oyun · {stats.won} galibiyet
+            <span className="points">
+              <span className="pt-coin">Pt</span> {pt(wallet.points)}
             </span>
           </div>
         </div>
-        <button className="icon-btn" onClick={onSettings} aria-label="Ayarlar">
+        <button className="icon-btn" onClick={() => onNavigate('settings')} aria-label="Ayarlar">
           ⚙
         </button>
       </div>
 
-      <h1 className="logo logo--small">BATAK</h1>
+      <div className="home-logo">
+        <img src={appIcon} alt="" />
+        <h1 className="logo logo--small">BATAK</h1>
+      </div>
+
+      {daily && (
+        <motion.button className="daily" onClick={onClaimDaily} initial={{ scale: 0.9 }} animate={{ scale: 1 }}>
+          <span className="daily-gift">🎁</span>
+          <span>
+            <b>Günlük ödülün hazır!</b>
+            <small>Her gün giriş yap, puan topla</small>
+          </span>
+          <span className="daily-amount">+{pt(ECONOMY.DAILY_BONUS)}</span>
+        </motion.button>
+      )}
+
+      <div className="home-grid">
+        <button className="tile tile--primary" onClick={() => onNavigate('rooms')}>
+          <span className="tile-icon">🔍</span>
+          <b>Oda Bul</b>
+          <small>Açık masalara katıl</small>
+        </button>
+        <button className="tile tile--primary" onClick={() => onNavigate('create')}>
+          <span className="tile-icon">➕</span>
+          <b>Oda Kur</b>
+          <small>Kendi masanı aç</small>
+        </button>
+        <button className="tile" onClick={() => onNavigate('leaderboard')}>
+          <span className="tile-icon">🏆</span>
+          <b>Lider Tablosu</b>
+        </button>
+        <button className="tile" onClick={() => onNavigate('friends')}>
+          <span className="tile-icon">👥</span>
+          <b>Arkadaşlar</b>
+        </button>
+        <button className="tile tile--wide" onClick={() => onNavigate('practice')}>
+          <span className="tile-icon">🤖</span>
+          <b>Botlarla Pratik</b>
+          <small>Puan harcamadan oyna</small>
+        </button>
+      </div>
+
+      <button className="ad-reward" disabled={ads === 0 || watchingAd} onClick={onWatchAd}>
+        🎬 {watchingAd ? 'Reklam oynatılıyor…' : ads > 0 ? `Reklam izle, +${pt(ECONOMY.AD_REWARD)} Pt kazan` : 'Bugünkü reklam ödülleri bitti'}
+        <span className="ad-reward-left">
+          {ads}/{ECONOMY.AD_REWARDS_PER_DAY}
+        </span>
+      </button>
 
       {premium ? (
         <span className="premium-tag">♛ Premium</span>
       ) : (
-        <button className="premium-btn" onClick={onPremium}>
+        <button className="premium-btn" onClick={() => onNavigate('premium')}>
           ♛ Reklamsız Oyna
         </button>
       )}
 
-      <section className="room">
-        <div className="room-title">Oda Kur</div>
-
-        <div className="room-row">
-          <span className="room-label">Oyun Tipi</span>
-          <div className="mode-grid">
-            {MODES.map((m) => (
-              <button
-                key={m}
-                className={`mode-chip ${settings.mode === m ? 'mode-chip--on' : ''}`}
-                onClick={() => onChange({ ...settings, mode: m })}
-              >
-                {MODE_INFO[m].title}
-                <span className="mode-chip-sub">{playerCount(m)} kişi</span>
-              </button>
-            ))}
-          </div>
-          <span className="room-help">{MODE_INFO[settings.mode].desc}</span>
-        </div>
-
-        <div className="room-row">
-          <span className="room-label">El Sayısı</span>
-          <div className="seg seg--full">
-            {ROUND_OPTIONS.map((r) => (
-              <button
-                key={r}
-                className={`seg-btn ${settings.rounds === r ? 'seg-btn--on' : ''}`}
-                onClick={() => onChange({ ...settings, rounds: r })}
-              >
-                {r}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="room-row">
-          <span className="room-label">Koz Oynama Kuralı</span>
-          <div className="seg seg--full">
-            {TRUMP_RULES.map((r) => (
-              <button
-                key={r.value}
-                className={`seg-btn ${settings.trumpRule === r.value ? 'seg-btn--on' : ''}`}
-                onClick={() => onChange({ ...settings, trumpRule: r.value })}
-              >
-                {r.label}
-              </button>
-            ))}
-          </div>
-          <span className="room-help">{rule.desc}</span>
-        </div>
-
-        <div className="room-row room-row--inline">
-          <span className="room-label">Mesaj Gönderme</span>
-          <div className="seg">
-            {[true, false].map((on) => (
-              <button
-                key={String(on)}
-                className={`seg-btn ${settings.chat === on ? 'seg-btn--on' : ''}`}
-                onClick={() => onChange({ ...settings, chat: on })}
-              >
-                {on ? 'Açık' : 'Kapalı'}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <motion.button className="btn btn--gold btn--xl wide" whileTap={{ scale: 0.96 }} onClick={onPlay}>
-          OYNA
-        </motion.button>
-      </section>
-
-      <button className="link" onClick={onRules}>
+      <button className="link" onClick={() => onNavigate('rules')}>
         Nasıl oynanır?
       </button>
     </div>

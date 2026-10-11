@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { Auth, FIREBASE_CONFIGURED, Provider } from '../../services/auth';
-import { PlayingCard } from '../components/PlayingCard';
+import appIcon from '../../assets/app-icon.png';
 
 export const ProviderIcon = ({ p }: { p: Provider }) => {
   if (p === 'google')
@@ -54,23 +54,14 @@ export function LoginScreen() {
   return (
     <div className="login">
       <div className="logo-wrap">
-        <div className="logo-cards">
-          {[
-            { suit: 'H', rank: 14, r: -18, x: -46 },
-            { suit: 'S', rank: 14, r: 0, x: 0 },
-            { suit: 'D', rank: 13, r: 18, x: 46 },
-          ].map((c, i) => (
-            <motion.div
-              key={i}
-              className="logo-card"
-              initial={{ y: 80, rotate: 0, opacity: 0 }}
-              animate={{ y: 0, rotate: c.r, x: c.x, opacity: 1 }}
-              transition={{ delay: 0.1 + i * 0.12, type: 'spring', stiffness: 200, damping: 18 }}
-            >
-              <PlayingCard card={{ suit: c.suit as 'S', rank: c.rank as 14 }} />
-            </motion.div>
-          ))}
-        </div>
+        <motion.img
+          className="login-icon"
+          src={appIcon}
+          alt=""
+          initial={{ scale: 0.6, opacity: 0, rotate: -8 }}
+          animate={{ scale: 1, opacity: 1, rotate: 0 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 14 }}
+        />
         <h1 className="logo">BATAK</h1>
         <div className="logo-sub">Klasik Türk Kart Oyunu</div>
       </div>

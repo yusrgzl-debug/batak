@@ -285,6 +285,12 @@ export function nextRound(s: GameState, rand?: () => number): GameState {
   return deal(s, rand);
 }
 
+/** Finishing order for prizes: Eşli puts the winning team's two seats first. */
+export function finishOrder(s: GameState): number[] {
+  if (s.settings.mode !== 'esli') return ranking(s);
+  return s.scores[0] >= s.scores[1] ? [0, 2, 1, 3] : [1, 3, 0, 2];
+}
+
 /** Final ranking: player indices ordered by score. */
 export function ranking(s: GameState): number[] {
   return range(s.n).sort((a, b) => s.scores[b] - s.scores[a]);

@@ -1,9 +1,9 @@
-import { Card, Suit, isRed, rankLabel } from '../../engine/cards';
+import { Card, Suit, rankLabel } from '../../engine/cards';
 
 /**
- * Flat, illustrated card faces: serif indices in all four corners, clean pip layouts and
- * double-ended court figures whose heads take the shape of their suit (a heart-headed King of
- * Hearts, a spade-headed Queen of Spades…). Everything is drawn on a 200×280 grid.
+ * Card faces in a classic layout (index in the top-left and bottom-right corners, standard pip
+ * patterns, framed double-ended court figures) drawn in a clean, slightly simplified style that
+ * suits the game rather than imitating a printed deck. Everything is drawn on a 200×280 grid.
  */
 
 export const W = 200;
@@ -32,10 +32,12 @@ const PALETTE: Record<Suit, Palette> = {
 };
 
 const INK = '#1d2034';
-const SKIN = '#f6c4ad';
-const TEAL = '#1fa587';
-const GOLD = '#f2a93b';
-const PAPER = '#f8f5ee';
+const SKIN = '#f7d2bd';
+const GOLD = '#f0b93a';
+const RED = '#c8262e';
+const BLUE = '#2a4b9b';
+const PAPER = '#fdfcf8';
+const LINE = { stroke: INK, strokeWidth: 1.4, strokeLinejoin: 'round' as const };
 
 export function SuitShape({ suit, x, y, size, color, flip }: { suit: Suit; x: number; y: number; size: number; color?: string; flip?: boolean }) {
   const s = size / 100;
@@ -63,12 +65,12 @@ const LAYOUT: Record<number, [number, number][]> = {
 
 function Pips({ card }: { card: Card }) {
   if (card.rank === 14) {
+    const spade = card.suit === 'S';
     return (
       <g>
-        <SuitShape suit={card.suit} x={100} y={140} size={92} />
-        {/* a little sprig, echoing the court cards */}
-        <path d="M100 196 C100 214 112 222 124 224" fill="none" stroke={TEAL} strokeWidth="3" strokeLinecap="round" />
-        <SuitShape suit="H" x={128} y={222} size={14} color={TEAL} />
+        {spade && <ellipse cx="100" cy="140" rx="54" ry="62" fill="none" stroke={GOLD} strokeWidth="3" />}
+        {spade && <ellipse cx="100" cy="140" rx="47" ry="55" fill="none" stroke={INK} strokeWidth="1" />}
+        <SuitShape suit={card.suit} x={100} y={140} size={spade ? 72 : 64} />
       </g>
     );
   }
@@ -83,136 +85,122 @@ function Pips({ card }: { card: Card }) {
 
 /* ---------- court figures ---------- */
 
-function Face({ smile = true }: { smile?: boolean }) {
+function Face({ rank }: { rank: number }) {
   return (
-    <g stroke={INK} strokeWidth="1.6" strokeLinecap="round" fill="none">
-      <circle cx="93" cy="80" r="1.9" fill={INK} stroke="none" />
-      <circle cx="107" cy="80" r="1.9" fill={INK} stroke="none" />
-      <path d="M100 80 C97 86 98 89 101 89" />
-      {smile && <path d="M96 94 Q100 97 104 94" />}
+    <g stroke={INK} strokeWidth="1.3" strokeLinecap="round" fill="none">
+      <path d="M92 70 q3 -2 6 0 M102 70 q3 -2 6 0" />
+      <circle cx="95" cy="72" r="1.2" fill={INK} stroke="none" />
+      <circle cx="105" cy="72" r="1.2" fill={INK} stroke="none" />
+      <path d="M100 73 L98 80 L101 80" />
+      {rank !== 13 && <path d="M96 85 Q100 87 104 85" stroke={RED} strokeWidth="1.8" />}
     </g>
   );
 }
 
-function Crown({ suit, y, w, tall }: { suit: Suit; y: number; w: number; tall: number }) {
-  const l = 100 - w / 2;
-  const r = 100 + w / 2;
-  const d = `M${l} ${y} L${l - 2} ${y - tall} L${l + w * 0.25} ${y - tall * 0.55} L100 ${y - tall - 4} L${r - w * 0.25} ${y - tall * 0.55} L${r + 2} ${y - tall} L${r} ${y} Z`;
-  return (
-    <g>
-      <path d={d} fill="#fff" stroke={GOLD} strokeWidth="2.4" strokeLinejoin="round" />
-      <SuitShape suit={suit} x={100} y={y - tall - 8} size={11} color={GOLD} />
-      {[-1, 0, 1].map((k) => (
-        <SuitShape key={k} suit={suit} x={100 + k * w * 0.26} y={y - tall * 0.3} size={7} color={GOLD} />
-      ))}
-    </g>
-  );
-}
+const ROBE: Record<Suit, [string, string]> = {
+  H: [RED, BLUE],
+  D: [BLUE, RED],
+  S: [BLUE, INK],
+  C: [RED, INK],
+};
 
 /** One half of a court card (top half); drawn twice, the second rotated 180° about the centre. */
 function CourtHalf({ suit, rank }: { suit: Suit; rank: number }) {
-  const p = PALETTE[suit];
+  const [robe, panel] = ROBE[suit];
   const king = rank === 13;
   const queen = rank === 12;
+  const jack = rank === 11;
   return (
     <g>
-      {/* shoulders / robe with stripes */}
-      <path d="M44 140 C44 112 66 104 100 104 C134 104 156 112 156 140 Z" fill={p.main} />
-      {[0, 1, 2].map((i) => (
-        <path
-          key={i}
-          d={`M${54 + i * 6} 140 C${56 + i * 6} ${122 - i * 3} ${74} ${112 + i} 100 ${112 + i}`}
-          fill="none"
-          stroke={p.light}
-          strokeWidth="2.2"
-          opacity="0.75"
-        />
-      ))}
-      {[0, 1, 2].map((i) => (
-        <path
-          key={i}
-          d={`M${146 - i * 6} 140 C${144 - i * 6} ${122 - i * 3} ${126} ${112 + i} 100 ${112 + i}`}
-          fill="none"
-          stroke={p.light}
-          strokeWidth="2.2"
-          opacity="0.75"
-        />
-      ))}
-      {/* dotted sash */}
-      <path d="M50 128 C70 120 130 120 150 128 L150 136 C130 128 70 128 50 136 Z" fill="#fff" />
-      {[62, 76, 90, 104, 118, 132].map((x) => (
-        <circle key={x} cx={x + 3} cy={128.5} r="1.6" fill={p.light} />
-      ))}
-      {/* collar */}
-      <path d="M74 110 C80 102 120 102 126 110 C122 116 78 116 74 110 Z" fill={p.dark} />
-
-      {/* head: suit-shaped hair/beard behind the face */}
-      {king && <SuitShape suit={suit} x={100} y={82} size={66} color={p.main} />}
-      {queen && (
+      {/* item held behind the shoulder: sword, flower or halberd */}
+      {king && (
         <g>
-          <path d="M70 70 C68 96 72 110 80 114 L120 114 C128 110 132 96 130 70 C128 52 72 52 70 70 Z" fill={p.dark} />
-          <SuitShape suit={suit} x={100} y={70} size={46} color={p.main} />
+          <path d="M126 132 L152 44" stroke="#dfe5ee" strokeWidth="5" strokeLinecap="round" />
+          <path d="M126 132 L152 44" stroke={INK} strokeWidth="0.8" />
+          <path d="M120 116 L140 122" stroke={GOLD} strokeWidth="4" strokeLinecap="round" />
         </g>
       )}
-      {rank === 11 && <path d="M78 66 C78 52 122 52 122 66 L120 76 L80 76 Z" fill={p.dark} />}
+      {queen && (
+        <g>
+          <path d="M128 128 C132 112 136 104 138 92" fill="none" stroke="#2f7d4f" strokeWidth="2.5" />
+          {[0, 72, 144, 216, 288].map((a) => (
+            <circle key={a} cx={138 + 6 * Math.cos((a * Math.PI) / 180)} cy={86 + 6 * Math.sin((a * Math.PI) / 180)} r="4.5" fill={RED} {...LINE} strokeWidth="0.8" />
+          ))}
+          <circle cx="138" cy="86" r="3.5" fill={GOLD} />
+        </g>
+      )}
+      {jack && (
+        <g>
+          <path d="M128 134 L150 48" stroke={GOLD} strokeWidth="3.5" strokeLinecap="round" />
+          <path d="M146 58 C158 56 160 46 154 40 C152 48 148 50 144 50 Z" fill="#dfe5ee" {...LINE} strokeWidth="0.9" />
+        </g>
+      )}
 
-      <ellipse cx="100" cy={king ? 82 : 84} rx="16" ry={king ? 14 : 17} fill={SKIN} />
-      <Face />
+      {/* robe */}
+      <path d="M42 140 L42 118 C42 106 60 100 80 98 L120 98 C140 100 158 106 158 118 L158 140 Z" fill={robe} {...LINE} />
+      <path d="M72 140 L78 100 L122 100 L128 140 Z" fill={panel} {...LINE} />
+      <path d="M100 100 L100 140" stroke={GOLD} strokeWidth="4" />
+      {[106, 118, 130].map((y) => (
+        <circle key={y} cx="100" cy={y} r="2" fill={PAPER} />
+      ))}
+      <path d="M42 126 L72 126 M128 126 L158 126" stroke={GOLD} strokeWidth="3" />
+      <circle cx="58" cy="114" r="8" fill={PAPER} {...LINE} strokeWidth="1" />
+      <SuitShape suit={suit} x={58} y={114} size={11} />
+      {/* collar */}
+      <path d="M78 98 Q100 114 122 98 L117 91 Q100 103 83 91 Z" fill={GOLD} {...LINE} />
+
+      {/* hair behind the face */}
+      {queen && <path d="M84 62 C78 80 80 94 76 102 L92 100 L108 100 L124 102 C120 94 122 80 116 62 Z" fill={GOLD} {...LINE} />}
+      {jack && <path d="M85 64 C82 78 84 88 82 94 L118 94 C116 88 118 78 115 64 Z" fill={GOLD} {...LINE} />}
+      {king && <path d="M84 64 C82 76 84 84 84 88 L116 88 C116 84 118 76 116 64 Z" fill="#ece6d6" {...LINE} />}
+
+      <ellipse cx="100" cy="74" rx="14" ry="17" fill={SKIN} {...LINE} />
+      <Face rank={rank} />
       {king && (
-        <path d="M86 92 C90 104 110 104 114 92 C108 98 92 98 86 92 Z" fill={p.main} />
+        <g>
+          <path d="M87 80 C88 98 112 98 113 80 C108 86 92 86 87 80 Z" fill="#ece6d6" {...LINE} />
+          <path d="M93 81 Q100 78 107 81" fill="none" stroke={INK} strokeWidth="1.2" />
+        </g>
       )}
 
       {/* headwear */}
-      {king && <Crown suit={suit} y={58} w={40} tall={16} />}
-      {queen && <Crown suit={suit} y={62} w={30} tall={10} />}
-      {rank === 11 && (
+      {(king || queen) && (
         <g>
-          <path d="M72 66 C74 50 126 50 128 66 C118 62 82 62 72 66 Z" fill={p.main} />
-          <path d="M118 58 C126 46 134 44 140 38 C136 50 128 56 120 61 Z" fill={TEAL} />
-          <circle cx="100" cy="56" r="3" fill={GOLD} />
+          <path
+            d={king ? 'M84 58 L82 40 L91 48 L100 34 L109 48 L118 40 L116 58 Z' : 'M88 58 L86 46 L94 52 L100 42 L106 52 L114 46 L112 58 Z'}
+            fill={GOLD}
+            {...LINE}
+          />
+          <rect x={king ? 84 : 88} y="54" width={king ? 32 : 24} height="5" fill={panel} {...LINE} strokeWidth="1" />
+          <circle cx="100" cy={king ? 46 : 51} r="2.6" fill={king ? RED : BLUE} />
+        </g>
+      )}
+      {jack && (
+        <g>
+          <path d="M80 62 C80 46 120 46 120 62 Z" fill={panel} {...LINE} />
+          <rect x="80" y="58" width="40" height="5" fill={GOLD} {...LINE} strokeWidth="1" />
+          <path d="M116 52 C126 38 136 36 142 30 C138 44 128 52 118 56 Z" fill={RED} {...LINE} strokeWidth="1" />
         </g>
       )}
 
-      {/* arm + hand holding a sprig (King), a flower (Queen) or a staff (Jack) */}
-      <path d="M150 136 C142 128 132 124 122 124" fill="none" stroke={p.dark} strokeWidth="9" strokeLinecap="round" />
-      {king && (
-        <g>
-          <path d="M122 124 C128 108 134 96 138 82" fill="none" stroke={TEAL} strokeWidth="3" strokeLinecap="round" />
-          <SuitShape suit="H" x={140} y={74} size={20} color={TEAL} flip />
-          <SuitShape suit="H" x={131} y={100} size={9} color={TEAL} flip />
-        </g>
-      )}
-      {queen && (
-        <g>
-          <path d="M122 124 C128 110 134 100 138 88" fill="none" stroke={TEAL} strokeWidth="3" strokeLinecap="round" />
-          {[0, 72, 144, 216, 288].map((a) => (
-            <circle key={a} cx={138 + 7 * Math.cos((a * Math.PI) / 180)} cy={82 + 7 * Math.sin((a * Math.PI) / 180)} r="5" fill={p.light} />
-          ))}
-          <circle cx="138" cy="82" r="4" fill={GOLD} />
-        </g>
-      )}
-      {rank === 11 && (
-        <g>
-          <path d="M122 126 L140 80" stroke={GOLD} strokeWidth="3.5" strokeLinecap="round" />
-          <SuitShape suit={suit} x={142} y={74} size={15} color={GOLD} />
-        </g>
-      )}
-      <ellipse cx="121" cy="124" rx="7" ry="6" fill={SKIN} />
+      {/* hand */}
+      <ellipse cx="129" cy="122" rx="6" ry="5" fill={SKIN} {...LINE} strokeWidth="1" />
     </g>
   );
 }
 
 function Court({ card }: { card: Card }) {
-  const p = PALETTE[card.suit];
+  const frame = PALETTE[card.suit].pip;
   return (
-    // scaled up so the figure fills the card between the corner indices
-    <g transform="translate(100 140) scale(1.22) translate(-100 -140)">
-      <CourtHalf suit={card.suit} rank={card.rank} />
-      <g transform="rotate(180 100 140)">
+    <g>
+      <rect x="38" y="30" width="124" height="220" rx="4" fill="#fff" stroke={frame} strokeWidth="1.6" />
+      <svg x="38" y="30" width="124" height="220" viewBox="38 30 124 220">
         <CourtHalf suit={card.suit} rank={card.rank} />
-      </g>
-      {/* belt where both halves meet */}
-      <rect x="44" y="134" width="112" height="12" fill={p.dark} />
+        <g transform="rotate(180 100 140)">
+          <CourtHalf suit={card.suit} rank={card.rank} />
+        </g>
+      </svg>
+      <path d="M38 140 L162 140" stroke={GOLD} strokeWidth="2" />
     </g>
   );
 }
@@ -222,32 +210,28 @@ function Court({ card }: { card: Card }) {
 function Index({ card }: { card: Card }) {
   const color = PALETTE[card.suit].pip;
   const label = rankLabel(card.rank);
-  const narrow = label === '10';
+  const ten = label === '10';
   const one = (
     <g>
       <text
-        x="22"
-        y="40"
+        x="19"
+        y="38"
         textAnchor="middle"
         fontFamily="'Playfair Display', Georgia, serif"
         fontWeight="900"
-        fontSize={narrow ? 30 : 36}
-        letterSpacing={narrow ? -2 : 0}
+        fontSize={ten ? 28 : 34}
+        letterSpacing={ten ? -2.5 : 0}
         fill={color}
       >
         {label}
       </text>
-      <SuitShape suit={card.suit} x={22} y={58} size={20} />
+      <SuitShape suit={card.suit} x={19} y={54} size={18} />
     </g>
   );
   return (
     <g>
       {one}
-      <g transform={`translate(${W - 44} 0)`}>{one}</g>
-      <g transform={`rotate(180 ${W / 2} ${H / 2})`}>
-        {one}
-        <g transform={`translate(${W - 44} 0)`}>{one}</g>
-      </g>
+      <g transform={`rotate(180 ${W / 2} ${H / 2})`}>{one}</g>
     </g>
   );
 }
@@ -256,29 +240,30 @@ export function CardFace({ card }: { card: Card }) {
   const court = card.rank >= 11 && card.rank <= 13;
   return (
     <svg className="card-face-svg" viewBox={`0 0 ${W} ${H}`} width="100%" height="100%" aria-hidden>
-      <rect x="0" y="0" width={W} height={H} rx="14" fill={PAPER} />
+      <rect x="0" y="0" width={W} height={H} rx="12" fill={PAPER} />
       {court ? <Court card={card} /> : <Pips card={card} />}
       <Index card={card} />
     </svg>
   );
 }
 
+/** Classic red back: white border, diamond lattice and an oval medallion. */
 export function CardBack() {
-  const marks: [number, number, Suit][] = [];
-  const order: Suit[] = ['H', 'S', 'D', 'C'];
-  for (let r = 0; r < 9; r++) for (let c = 0; c < 6; c++) marks.push([34 + c * 26.4, 36 + r * 26, order[(r + c) % 4]]);
   return (
     <svg className="card-back-svg" viewBox={`0 0 ${W} ${H}`} width="100%" height="100%" aria-hidden>
-      <rect x="0" y="0" width={W} height={H} rx="14" fill={PAPER} />
-      <rect x="12" y="12" width={W - 24} height={H - 24} rx="8" fill="#e3262f" />
-      {marks.map(([x, y, s], i) => (
-        <SuitShape key={i} suit={s} x={x} y={y} size={12} color={isRed(s) ? '#f48a98' : '#b81c26'} />
-      ))}
-      <circle cx="100" cy="140" r="34" fill={PAPER} />
-      <circle cx="100" cy="140" r="28" fill="none" stroke={GOLD} strokeWidth="3" />
-      <text x="100" y="153" textAnchor="middle" fontFamily="'Playfair Display', Georgia, serif" fontWeight="900" fontSize="38" fill="#e3262f">
-        B
-      </text>
+      <defs>
+        <pattern id="batak-back-lattice" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <rect width="14" height="14" fill="#c8102e" />
+          <path d="M0 7 H14 M7 0 V14" stroke="#f6d4d8" strokeWidth="1.2" />
+          <circle cx="7" cy="7" r="2" fill="#fff" />
+        </pattern>
+      </defs>
+      <rect x="0" y="0" width={W} height={H} rx="12" fill={PAPER} />
+      <rect x="11" y="11" width={W - 22} height={H - 22} rx="6" fill="url(#batak-back-lattice)" stroke="#8e0b20" strokeWidth="2" />
+      <rect x="17" y="17" width={W - 34} height={H - 34} rx="4" fill="none" stroke="#fff" strokeWidth="1.2" />
+      <ellipse cx="100" cy="140" rx="36" ry="48" fill="#c8102e" stroke="#fff" strokeWidth="3" />
+      <ellipse cx="100" cy="140" rx="28" ry="39" fill="none" stroke={GOLD} strokeWidth="1.6" />
+      <SuitShape suit="S" x={100} y={140} size={34} color="#fff" />
     </svg>
   );
 }

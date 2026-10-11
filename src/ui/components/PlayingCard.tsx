@@ -25,6 +25,7 @@ export function PlayingCard({ card, faceDown, playable, glow, selected, fresh, d
     playable && 'card--tappable',
     glow && 'card--playable',
     selected && 'card--selected',
+    fresh && 'card--fresh',
     dimmed && 'card--dimmed',
   ];
   if (faceDown || !card) {

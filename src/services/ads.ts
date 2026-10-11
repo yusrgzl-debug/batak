@@ -16,7 +16,7 @@ export const adsActive = () => MONETIZATION.ADS_ENABLED && !Premium.isPremium;
 
 export const Ads = {
   async init() {
-    if (!native || !MONETIZATION.ADS_ENABLED || initialized) return;
+    if (!native || initialized) return; // also needed for rewarded ads when ADS_ENABLED is false
     const { AdMob } = await admob();
     await AdMob.initialize({ initializeForTesting: MONETIZATION.ADMOB.testing });
     initialized = true;
@@ -39,6 +39,26 @@ export const Ads = {
     if (!native || !initialized) return;
     const { AdMob } = await admob();
     await AdMob.removeBanner().catch(() => undefined);
+  },
+
+  /**
+   * Rewarded video ("Reklam izle, puan kazan"). Opt-in, so it is offered to Premium members too.
+   * Resolves true only when the ad network reports the reward. The web build simulates a short ad.
+   */
+  async showRewarded(): Promise<boolean> {
+    if (!native) {
+      await new Promise((r) => setTimeout(r, 2500));
+      return true;
+    }
+    if (!initialized) await Ads.init();
+    const { AdMob } = await admob();
+    try {
+      await AdMob.prepareRewardVideoAd({ adId: units().rewarded, isTesting: MONETIZATION.ADMOB.testing });
+      const reward = await AdMob.showRewardVideoAd();
+      return !!reward;
+    } catch {
+      return false;
+    }
   },
 
   /** Call when a game finishes; shows an interstitial every N games. */

@@ -1,7 +1,11 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Card, SUITS, SUIT_NAME, SUIT_SYMBOL, Suit, isRed, cardId } from '../../engine/cards';
-import { GameState, KITTY, MODE_INFO, Settings, bidOptions, ranking, teamOf } from '../../engine/game';
+import { payouts } from '../../engine/economy';
+import { GameState, KITTY, MODE_INFO, Settings, bidOptions, finishOrder, ranking, teamOf } from '../../engine/game';
+import { LocalOnline, PlayerProfile, Room } from '../../services/online';
+import { pt } from '../format';
+import { PlayerCard } from './SocialScreens';
 import { legalMoves } from '../../engine/rules';
 import { Avatar, Crown } from '../components/Avatar';
 import { ChatPanel } from '../components/ChatPanel';
@@ -45,18 +49,57 @@ interface Props {
   playerName: string;
   photoUrl: string | null;
   premium: boolean;
-  onExit: () => void;
-  onGameEnd: (s: GameState) => void;
+  /** set when playing at an online table (points at stake) */
+  table?: { room: Room; players: PlayerProfile[] };
+  online?: LocalOnline;
+  /** abandoned = left a running table game (bot takes the seat, penalty applies) */
+  onExit: (abandoned: boolean) => void;
+  onGameEnd: (s: GameState, prizeWon: number) => void;
 }
 
-export function GameScreen({ settings, prefs, playerName, photoUrl, premium, onExit, onGameEnd }: Props) {
+const BOT: PlayerProfile = { id: 'bot', name: 'Bot', points: 0, games: 0, wins: 0, premium: false, bot: true };
+
+export function GameScreen({ settings, prefs, playerName, photoUrl, premium, table, online, onExit, onGameEnd }: Props) {
   const { state: s, bid, bury, trump, play, advance, restart } = useGame(settings, prefs.speed);
   const [showScores, setShowScores] = useState(false);
   const [confirmExit, setConfirmExit] = useState(false);
   const [toBury, setToBury] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState<string | null>(null);
   const reported = useRef(false);
-  const names = useMemo(() => [playerName, ...BOTS].slice(0, s.n), [playerName, s.n]);
+  // seats that were abandoned mid-game and are now played by a bot
+  const [left, setLeft] = useState<number[]>([]);
+  const [openProfile, setOpenProfile] = useState<PlayerProfile | null>(null);
+  const seatPlayer = (p: number): PlayerProfile | null => {
+    if (!table) return null;
+    if (left.includes(p)) return BOT;
+    return table.players[p];
+  };
+  const names = useMemo(
+    () =>
+      Array.from({ length: s.n }, (_, p) => {
+        if (p === HUMAN) return playerName;
+        if (!table) return BOTS[p - 1];
+        if (left.includes(p)) return '🤖 Bot';
+        return table.players[p].name.split(' ')[0];
+      }),
+    [playerName, s.n, table, left],
+  );
+  const prizeWon = useMemo(
+    () => (table && s.phase === 'gameEnd' ? payouts(settings.mode, table.room.prize, finishOrder(s))[HUMAN] : 0),
+    [table, s, settings.mode],
+  );
+
+  // At an online table another player may leave; a bot takes the seat (demo: simulated now and then).
+  const leavePlan = useMemo(() => {
+    if (!table || Math.random() > 0.3) return null;
+    return { seat: 1 + Math.floor(Math.random() * (s.n - 1)), round: 1 + Math.floor(Math.random() * Math.max(1, settings.rounds - 1)) };
+  }, []);
+  useEffect(() => {
+    if (!leavePlan || left.includes(leavePlan.seat) || s.round < leavePlan.round || s.phase !== 'playing') return;
+    const who = table!.players[leavePlan.seat].name.split(' ')[0];
+    setLeft((l) => [...l, leavePlan.seat]);
+    setToast(`${who} oyundan ayrıldı, yerine bot geçti`);
+  }, [leavePlan, left, s.round, s.phase, table]);
   const esli = settings.mode === 'esli';
   const me = { photoUrl, premium };
 
@@ -119,11 +162,11 @@ export function GameScreen({ settings, prefs, playerName, photoUrl, premium, onE
   useEffect(() => {
     if (s.phase === 'gameEnd' && !reported.current) {
       reported.current = true;
-      onGameEnd(s);
+      onGameEnd(s, prizeWon);
       ranking(s)[0] === HUMAN || (esli && teamOf(ranking(s)[0]) === 0) ? sfx.win() : sfx.fail();
     }
     if (s.phase !== 'gameEnd') reported.current = false;
-  }, [s, onGameEnd, esli]);
+  }, [s, onGameEnd, esli, prizeWon]);
 
   const myTurnToPlay = s.phase === 'playing' && s.turn === HUMAN;
   const legal = useMemo(
@@ -132,10 +175,24 @@ export function GameScreen({ settings, prefs, playerName, photoUrl, premium, onE
   );
   const isLegal = (c: Card) => legal.some((l) => cardId(l) === cardId(c));
   const burying = s.phase === 'bury' && s.turn === HUMAN;
-  // Gömmeli: the kitty cards carry a small YENİ tag during the first trick only.
-  const firstTrick = (s.phase === 'playing' || s.phase === 'trickEnd') && s.played.length === 0;
-  const showFresh = settings.mode === 'gommeli' && s.highBid?.player === HUMAN && firstTrick;
-  const fresh = useMemo(() => (showFresh ? new Set(s.kitty.map(cardId)) : undefined), [showFresh, s.kitty]);
+  // Gömmeli: after burying, the 4 kitty cards stand out (gold frame + YENİ) for 2 s or until a tap.
+  const [fresh, setFresh] = useState<Set<string> | undefined>();
+  const prevPhase = useRef(s.phase);
+  useEffect(() => {
+    const justBuried = prevPhase.current === 'bury' && s.phase === 'playing' && s.highBid?.player === HUMAN;
+    prevPhase.current = s.phase;
+    if (!justBuried) return;
+    setFresh(new Set(s.kitty.map(cardId)));
+    const clear = () => setFresh(undefined);
+    const t = window.setTimeout(clear, 2000);
+    // a tap anywhere ends the highlight (registered after this click has finished bubbling)
+    const arm = window.setTimeout(() => window.addEventListener('pointerdown', clear, { once: true }), 0);
+    return () => {
+      window.clearTimeout(t);
+      window.clearTimeout(arm);
+      window.removeEventListener('pointerdown', clear);
+    };
+  }, [s.phase, s.highBid, s.kitty]);
 
   const onTap = (c: Card) => {
     if (burying) {
@@ -204,7 +261,21 @@ export function GameScreen({ settings, prefs, playerName, photoUrl, premium, onE
         </div>
 
         {names.slice(1).map((_, i) => i + 1).map((p) => (
-          <Opponent key={p} p={p} s={s} name={names[p]} esli={esli} bubble={bubbleOf(p)} />
+          <Opponent
+            key={p}
+            p={p}
+            s={s}
+            name={names[p]}
+            esli={esli}
+            bubble={bubbleOf(p)}
+            photoUrl={seatPlayer(p)?.photoUrl}
+            premium={seatPlayer(p)?.premium}
+            onTap={() =>
+              setOpenProfile(
+                seatPlayer(p) ?? { ...BOT, name: names[p] },
+              )
+            }
+          />
         ))}
 
         <div className="trick">
@@ -277,19 +348,33 @@ export function GameScreen({ settings, prefs, playerName, photoUrl, premium, onE
           <RoundEndModal key="round" s={s} names={names} onNext={advance} />
         )}
         {s.phase === 'gameEnd' && (
-          <GameEndModal key="end" s={s} names={names} onRestart={restart} onExit={onExit} />
+          <GameEndModal
+            key="end"
+            s={s}
+            names={names}
+            prize={table ? prizeWon : null}
+            onRestart={table ? null : restart}
+            onExit={() => onExit(false)}
+          />
         )}
         {chatOpen && <ChatPanel key="chat" log={chatLog} names={names} onSend={sendMine} onClose={() => setChatOpen(false)} />}
         {showScores && <ScoresModal key="scores" s={s} names={names} onClose={() => setShowScores(false)} />}
+        {openProfile && <PlayerCard key="profile" online={online} player={openProfile} onClose={() => setOpenProfile(null)} />}
         {confirmExit && (
           <Modal key="exit" onClose={() => setConfirmExit(false)}>
             <h2>Oyundan çık?</h2>
-            <p className="muted">Mevcut oyun kaydedilmeyecek.</p>
+            {table ? (
+              <p className="muted">
+                Yerine bot geçer. Giriş bedeli ({pt(table.room.entry)} Pt) iade edilmez ve <b className="bad">500 Pt ceza</b> alırsın.
+              </p>
+            ) : (
+              <p className="muted">Mevcut oyun kaydedilmeyecek.</p>
+            )}
             <div className="row">
               <button className="btn btn--ghost" onClick={() => setConfirmExit(false)}>
                 Devam et
               </button>
-              <button className="btn btn--danger" onClick={onExit}>
+              <button className="btn btn--danger" onClick={() => onExit(!!table && s.phase !== 'gameEnd')}>
                 Çık
               </button>
             </div>
@@ -327,14 +412,19 @@ interface BadgeProps {
   bubble: string | null;
   photoUrl?: string | null;
   premium?: boolean;
+  onTap?: () => void;
 }
 
-function PlayerBadge({ p, s, name, esli, bubble, photoUrl, premium }: BadgeProps) {
+function PlayerBadge({ p, s, name, esli, bubble, photoUrl, premium, onTap }: BadgeProps) {
   const active = s.turn === p && ['bidding', 'bury', 'trump', 'playing'].includes(s.phase);
   const isBidder = s.highBid?.player === p && s.phase !== 'bidding';
   const b = bidText(s.bids[p]);
   return (
-    <div className={`badge badge--${seatOf(p, s.n)} ${active ? 'badge--active' : ''}`}>
+    <div
+      className={`badge badge--${seatOf(p, s.n)} ${active ? 'badge--active' : ''} ${onTap ? 'badge--tappable' : ''}`}
+      onClick={onTap}
+      role={onTap ? 'button' : undefined}
+    >
       <Avatar name={name} photoUrl={photoUrl} premium={premium} className={`avatar--${p} ${esli ? `team-${teamOf(p)}` : ''}`}>
         {isBidder && <span className="bidder-tag">İHALE</span>}
       </Avatar>
@@ -379,7 +469,7 @@ function PlayerBadge({ p, s, name, esli, bubble, photoUrl, premium }: BadgeProps
   );
 }
 
-function Opponent({ p, s, name, esli, bubble }: Omit<BadgeProps, 'photoUrl' | 'premium'>) {
+function Opponent({ p, s, name, esli, bubble, photoUrl, premium, onTap }: BadgeProps) {
   const n = s.hands[p].length;
   const seat = seatOf(p, s.n);
   const vertical = seat === 'left' || seat === 'right';
@@ -390,7 +480,7 @@ function Opponent({ p, s, name, esli, bubble }: Omit<BadgeProps, 'photoUrl' | 'p
           <PlayingCard key={i} faceDown small style={{ zIndex: i }} />
         ))}
       </div>
-      <PlayerBadge p={p} s={s} name={name} esli={esli} bubble={bubble} />
+      <PlayerBadge p={p} s={s} name={name} esli={esli} bubble={bubble} photoUrl={photoUrl} premium={premium} onTap={onTap} />
     </div>
   );
 }
@@ -592,12 +682,15 @@ function ScoresModal({ s, names, onClose }: { s: GameState; names: string[]; onC
 function GameEndModal({
   s,
   names,
+  prize,
   onRestart,
   onExit,
 }: {
   s: GameState;
   names: string[];
-  onRestart: () => void;
+  /** points won at an online table (null in practice games) */
+  prize: number | null;
+  onRestart: (() => void) | null;
   onExit: () => void;
 }) {
   const order = ranking(s);
@@ -624,13 +717,20 @@ function GameEndModal({
           ))}
         </ol>
       )}
+      {prize !== null && (
+        <div className={`prize-result ${prize > 0 ? 'good' : 'muted'}`}>
+          {prize > 0 ? `+${pt(prize)} Pt kazandın` : 'Bu masadan puan çıkmadı'}
+        </div>
+      )}
       <div className="row">
         <button className="btn btn--ghost" onClick={onExit}>
           Menü
         </button>
-        <button className="btn btn--gold" onClick={onRestart}>
-          Tekrar Oyna
-        </button>
+        {onRestart && (
+          <button className="btn btn--gold" onClick={onRestart}>
+            Tekrar Oyna
+          </button>
+        )}
       </div>
     </Modal>
   );

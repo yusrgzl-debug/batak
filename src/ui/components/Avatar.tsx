@@ -41,7 +41,7 @@ export function Avatar({ name, photoUrl, premium, size = 34, className = '', chi
       className={`avatar ${premium ? 'avatar--premium' : ''} ${className}`}
       style={{ width: size, height: size, fontSize: size * 0.46 }}
     >
-      {photoUrl ? <img src={photoUrl} alt="" referrerPolicy="no-referrer" /> : name[0]?.toUpperCase()}
+      {photoUrl ? <img src={photoUrl} alt="" referrerPolicy="no-referrer" /> : Array.from(name)[0]?.toLocaleUpperCase('tr')}
       {premium && (
         <span className="avatar-premium-crown">
           <Crown size={size * 0.62} />

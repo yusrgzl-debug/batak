@@ -51,6 +51,7 @@ export function Hand({ cards, isActive, dimInactive, selected, fresh, onTap }: P
             const id = cardId(c);
             const active = isActive(c);
             const sel = selected?.has(id) ?? false;
+            const isFresh = fresh?.has(id) ?? false;
             return (
               <motion.div
                 key={id}
@@ -58,20 +59,21 @@ export function Hand({ cards, isActive, dimInactive, selected, fresh, onTap }: P
                 initial={{ y: 160, opacity: 0 }}
                 animate={{
                   x: -total / 2 + i * step,
-                  y: r * rowGap + (sel ? -22 : active && dimInactive ? -8 : 0),
+                  y: r * rowGap + (sel || isFresh ? -22 : active && dimInactive ? -8 : 0),
+                  scale: isFresh ? 1.06 : 1,
                   opacity: 1,
                 }}
                 exit={{ y: -160, opacity: 0, transition: { duration: 0.2 } }}
                 transition={{ type: 'spring', stiffness: 320, damping: 30 }}
-                style={{ width: cardW, zIndex: r * 100 + i }}
+                style={{ width: cardW, zIndex: r * 100 + i + (isFresh ? 50 : 0) }}
               >
                 <PlayingCard
                   card={c}
                   playable={active}
                   glow={dimInactive && active}
                   selected={sel}
-                  fresh={fresh?.has(id)}
-                  hiddenRight={i < row.length - 1 ? Math.max(0, cardW - step) : 0}
+                  fresh={isFresh}
+                  hiddenRight={i < row.length - 1 && !isFresh ? Math.max(0, cardW - step) : 0}
                   dimmed={dimInactive && !active}
                   onClick={() => onTap(c)}
                 />

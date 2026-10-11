@@ -10,7 +10,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "cap:sync": "npm run build && cap sync",
-    "build:web": "tsc --noEmit && vite build -c vite.web.config.ts && node scripts/web-demo.mjs"
+    "build:web": "tsc --noEmit && vite build -c vite.web.config.ts && node scripts/web-demo.mjs",
+    "icons": "capacitor-assets generate --iconBackgroundColor '#12121a' --iconBackgroundColorDark '#12121a' --splashBackgroundColor '#12121a' --splashBackgroundColorDark '#12121a'"
   },
   "dependencies": {
     "@capacitor-community/admob": "^6.2.0",
@@ -25,6 +26,7 @@
   },
   "devDependencies": {
     "@capacitor/android": "^6.2.2",
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^6.2.2",
     "@capacitor/ios": "^6.2.2",
     "@types/react": "^18.3.12",
