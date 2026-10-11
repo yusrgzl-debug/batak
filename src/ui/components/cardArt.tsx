@@ -47,9 +47,12 @@ export function SuitShape({ suit, x, y, size, color, flip }: { suit: Suit; x: nu
 
 /* ---------- pips ---------- */
 
+// Pips are laid out on the classic grid, then moved right of the big corner index.
 const C1 = 66;
 const C2 = 100;
 const C3 = 134;
+const px = (x: number) => 140 + (x - 100) * 1.06;
+const py = (y: number) => 146 + (y - 140) * 1.27;
 // [x, y] — pips below the middle are drawn upside down, as on real cards
 const LAYOUT: Record<number, [number, number][]> = {
   2: [[C2, 70], [C2, 210]],
@@ -68,16 +71,16 @@ function Pips({ card }: { card: Card }) {
     const spade = card.suit === 'S';
     return (
       <g>
-        {spade && <ellipse cx="100" cy="140" rx="54" ry="62" fill="none" stroke={GOLD} strokeWidth="3" />}
-        {spade && <ellipse cx="100" cy="140" rx="47" ry="55" fill="none" stroke={INK} strokeWidth="1" />}
-        <SuitShape suit={card.suit} x={100} y={140} size={spade ? 72 : 64} />
+        {spade && <ellipse cx="136" cy="176" rx="50" ry="60" fill="none" stroke={GOLD} strokeWidth="3" />}
+        {spade && <ellipse cx="136" cy="176" rx="43" ry="53" fill="none" stroke={INK} strokeWidth="1" />}
+        <SuitShape suit={card.suit} x={136} y={176} size={spade ? 70 : 76} />
       </g>
     );
   }
   return (
     <g>
       {LAYOUT[card.rank].map(([x, y], i) => (
-        <SuitShape key={i} suit={card.suit} x={x} y={y} size={card.rank >= 9 ? 30 : 34} flip={y > 140} />
+        <SuitShape key={i} suit={card.suit} x={px(x)} y={py(y)} size={card.rank >= 9 ? 28 : 31} flip={y > 140} />
       ))}
     </g>
   );
@@ -192,7 +195,8 @@ function CourtHalf({ suit, rank }: { suit: Suit; rank: number }) {
 function Court({ card }: { card: Card }) {
   const frame = PALETTE[card.suit].pip;
   return (
-    <g>
+    // the framed figure sits right of the big corner index
+    <g transform="translate(34 0)">
       <rect x="38" y="30" width="124" height="220" rx="4" fill="#fff" stroke={frame} strokeWidth="1.6" />
       <svg x="38" y="30" width="124" height="220" viewBox="38 30 124 220">
         <CourtHalf suit={card.suit} rank={card.rank} />
@@ -207,31 +211,29 @@ function Court({ card }: { card: Card }) {
 
 /* ---------- full card ---------- */
 
+/**
+ * Big, condensed corner index (like printed "jumbo index" decks): rank and suit fill the left
+ * strip that stays visible when cards overlap in the hand, so they read at any screen size.
+ */
 function Index({ card }: { card: Card }) {
   const color = PALETTE[card.suit].pip;
   const label = rankLabel(card.rank);
   const ten = label === '10';
-  const one = (
+  return (
     <g>
       <text
-        x="19"
-        y="38"
+        x="36"
+        y={ten ? 80 : 86}
         textAnchor="middle"
-        fontFamily="'Playfair Display', Georgia, serif"
-        fontWeight="900"
-        fontSize={ten ? 28 : 34}
-        letterSpacing={ten ? -2.5 : 0}
+        fontFamily="'Roboto Condensed', 'Arial Narrow', Arial, sans-serif"
+        fontWeight="700"
+        fontSize={ten ? 72 : 90}
+        letterSpacing={ten ? -6 : 0}
         fill={color}
       >
         {label}
       </text>
-      <SuitShape suit={card.suit} x={19} y={54} size={18} />
-    </g>
-  );
-  return (
-    <g>
-      {one}
-      <g transform={`rotate(180 ${W / 2} ${H / 2})`}>{one}</g>
+      <SuitShape suit={card.suit} x={36} y={128} size={50} />
     </g>
   );
 }

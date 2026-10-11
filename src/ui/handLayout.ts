@@ -22,8 +22,8 @@ export const TWO_ROWS_FROM = 9;
 
 /**
  * Lay the hand out as one or two rows. Within a suit cards go low → high (yüksek kartlar sağda).
- * Two rows are split at the suit boundary closest to the middle so suits stay together
- * (a full 16-card Gömmeli hand of 4-4-4-4 becomes ♥♠ on top and ♦♣ below).
+ * Two rows are split at a suit boundary when that keeps the rows within one card of each other
+ * (a 4-4-4-4 Gömmeli hand becomes ♥♠ on top and ♦♣ below); otherwise exactly in the middle.
  */
 export function arrangeHand(hand: Card[]): Card[][] {
   const sorted = suitOrder(hand).flatMap((s) => hand.filter((c) => c.suit === s).sort((x, y) => x.rank - y.rank));
@@ -39,7 +39,8 @@ export function arrangeHand(hand: Card[]): Card[][] {
       split = i;
     }
   }
-  // a very lopsided split is worse than breaking a suit across the rows
-  if (best > 2) split = Math.ceil(half);
+  // rows of (almost) equal length matter more than keeping a suit together: an uneven split
+  // makes the longer row's cards smaller (see the reference: 8 + 8, suits may continue below)
+  if (best > 1) split = Math.ceil(half);
   return [sorted.slice(0, split), sorted.slice(split)];
 }

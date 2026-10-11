@@ -172,31 +172,42 @@ export function GameScreen({ settings, prefs, playerName, photoUrl, premium, tab
     if (s.phase !== 'gameEnd') reported.current = false;
   }, [s, onGameEnd, esli, prizeWon]);
 
-  const myTurnToPlay = s.phase === 'playing' && s.turn === HUMAN;
+  // Gömmeli: after burying, the bidder first sees the 4 kitty cards turned face up in the middle
+  const [reveal, setReveal] = useState<Card[] | null>(null);
+  const myTurnToPlay = s.phase === 'playing' && s.turn === HUMAN && !reveal;
   const legal = useMemo(
     () => (myTurnToPlay ? legalMoves(s.hands[HUMAN], s.trick, s.trump, s.trumpBroken, trumpRuleFor(settings)) : []),
     [myTurnToPlay, s.hands, s.trick, s.trump, s.trumpBroken, settings],
   );
   const isLegal = (c: Card) => legal.some((l) => cardId(l) === cardId(c));
   const burying = s.phase === 'bury' && s.turn === HUMAN;
-  // Gömmeli: after burying, the 4 kitty cards stand out (gold frame + YENİ) for 2 s or until a tap.
+  // …then they fly into the hand and stand out (gold frame + YENİ) for 2 s or until a tap.
   const [fresh, setFresh] = useState<Set<string> | undefined>();
   const prevPhase = useRef(s.phase);
   useEffect(() => {
     const justBuried = prevPhase.current === 'bury' && s.phase === 'playing' && s.highBid?.player === HUMAN;
     prevPhase.current = s.phase;
     if (!justBuried) return;
-    setFresh(new Set(s.kitty.map(cardId)));
+    setReveal(s.kitty);
     const clear = () => setFresh(undefined);
-    const t = window.setTimeout(clear, 2000);
-    // a tap anywhere ends the highlight (registered after this click has finished bubbling)
-    const arm = window.setTimeout(() => window.addEventListener('pointerdown', clear, { once: true }), 0);
+    let t = 0;
+    const r = window.setTimeout(() => {
+      setReveal(null);
+      setFresh(new Set(s.kitty.map(cardId)));
+      t = window.setTimeout(clear, 2000);
+      // a tap anywhere ends the highlight
+      window.addEventListener('pointerdown', clear, { once: true });
+    }, REVEAL_MS);
     return () => {
+      window.clearTimeout(r);
       window.clearTimeout(t);
-      window.clearTimeout(arm);
       window.removeEventListener('pointerdown', clear);
     };
   }, [s.phase, s.highBid, s.kitty]);
+  const handCards = useMemo(
+    () => (reveal ? s.hands[HUMAN].filter((c) => !reveal.some((k) => cardId(k) === cardId(c))) : s.hands[HUMAN]),
+    [reveal, s.hands],
+  );
 
   const onTap = (c: Card) => {
     if (burying) {
@@ -260,7 +271,6 @@ export function GameScreen({ settings, prefs, playerName, photoUrl, premium, tab
                 <path d={SUIT_PATH[s.trump]} />
               </svg>
             )}
-            <div className="table-logo">BATAK</div>
           </div>
         </div>
 
@@ -303,7 +313,7 @@ export function GameScreen({ settings, prefs, playerName, photoUrl, premium, tab
               );
             })}
           </AnimatePresence>
-          <Kitty s={s} />
+          <Kitty s={s} reveal={reveal} />
           {s.phase === 'bidding' && <BiddingStatus s={s} names={names} />}
           {s.phase === 'trump' && s.turn !== HUMAN && (
             <div className="center-msg">{names[s.turn]} kozu seçiyor…</div>
@@ -340,7 +350,7 @@ export function GameScreen({ settings, prefs, playerName, photoUrl, premium, tab
       </div>
 
       <Hand
-        cards={s.hands[HUMAN]}
+        cards={handCards}
         isActive={(c) => burying || (myTurnToPlay && (!prefs.cardHelper || isLegal(c)))}
         dimInactive={prefs.cardHelper && myTurnToPlay && !fresh}
         selected={burying ? toBury : undefined}
@@ -495,9 +505,13 @@ function TurnRing() {
 }
 
 /** Gömmeli: the 4 face-down kitty cards in the middle of the table until the bidder takes them. */
-function Kitty({ s }: { s: GameState }) {
-  const show = s.settings.mode === 'gommeli' && ['bidding', 'trump', 'bury'].includes(s.phase);
+const REVEAL_MS = 1900;
+
+function Kitty({ s, reveal }: { s: GameState; reveal: Card[] | null }) {
+  const show = s.settings.mode === 'gommeli' && (['bidding', 'trump', 'bury'].includes(s.phase) || !!reveal);
   const to = s.highBid ? FROM[seatOf(s.highBid.player, s.n)] : { x: 0, y: 0 };
+  // the human bidder's revealed cards vanish here and reappear flying into the hand
+  const mine = s.highBid?.player === HUMAN;
   return (
     <AnimatePresence>
       {show && (
@@ -506,11 +520,26 @@ function Kitty({ s }: { s: GameState }) {
           className="kitty"
           initial={{ opacity: 0, y: -20, scale: 0.8 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, x: to.x * 0.8, y: to.y * 0.8, scale: 0.6, transition: { duration: 0.45, ease: 'easeIn' } }}
+          exit={
+            mine
+              ? { opacity: 0, scale: 0.9, transition: { duration: 0.15 } }
+              : { opacity: 0, x: to.x * 0.8, y: to.y * 0.8, scale: 0.6, transition: { duration: 0.45, ease: 'easeIn' } }
+          }
         >
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="kitty-card" style={{ transform: `translateX(${(i - 1.5) * 26}px) rotate(${(i - 1.5) * 6}deg)` }}>
-              <PlayingCard faceDown />
+            <div
+              key={i}
+              className={`kitty-card ${reveal ? 'kitty-card--open' : ''}`}
+              style={{ transform: `translateX(${(i - 1.5) * (reveal ? 46 : 26)}px) rotate(${(i - 1.5) * (reveal ? 3 : 6)}deg)` }}
+            >
+              {reveal ? (
+                // turned face up one after another
+                <motion.div initial={{ rotateY: 90 }} animate={{ rotateY: 0 }} transition={{ delay: i * 0.12, duration: 0.3 }}>
+                  <PlayingCard card={reveal[i]} />
+                </motion.div>
+              ) : (
+                <PlayingCard faceDown />
+              )}
             </div>
           ))}
         </motion.div>
